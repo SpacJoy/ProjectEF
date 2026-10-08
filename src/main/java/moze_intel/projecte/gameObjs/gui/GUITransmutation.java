@@ -134,6 +134,17 @@ public class GUITransmutation extends PEContainerScreen<TransmutationContainer> 
 	}
 
 	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		//Allow switching pages by scrolling the mouse wheel, so that the previous/next buttons don't have to be clicked
+		if (scrollY < 0 && inv.hasNextPage()) {
+			inv.nextPage();
+		} else if (scrollY > 0 && inv.hasPreviousPage()) {
+			inv.previousPage();
+		}
+		return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+	}
+
+	@Override
 	public boolean mouseClicked(double x, double y, int mouseButton) {
 		if (textBoxFilter.isMouseOver(x, y)) {
 			if (mouseButton == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
