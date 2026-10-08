@@ -2,6 +2,17 @@
 
 All notable changes to ProjectEF Neo are documented here.
 
+## [1.3.3] - 2026-10-08
+
+### Added
+
+- "Reset held mod" button in the EMC Manager, placed next to "Held item". It clears every custom EMC value belonging to the mod of the item in your main hand in one step, equivalent to resetting each base item individually; click Apply afterwards to recalculate and synchronize. Requires the reset permission.
+- The transmutation table and tablet GUI can now change pages by scrolling the mouse wheel, so the previous and next buttons no longer have to be clicked.
+
+### Fixed
+
+- The interdiction torch rendered as a solid, opaque green blob. NeoForge selects a block model's render layer from the `render_type` field in the model JSON, but Fabric has no equivalent and silently ignores it, so the cutout model fell back to the solid layer, whose mipmapped atlas blending averaged the transparent pixels with their neighbours. The block and its wall variant are now registered to the cutout render layer explicitly.
+
 ## [1.3.2] - 2026-10-02
 
 ### Added
