@@ -34,6 +34,7 @@ import moze_intel.projecte.rendering.PedestalRenderer;
 import moze_intel.projecte.rendering.TransmutationRenderingOverlay;
 import moze_intel.projecte.utils.ClientKeyHelper;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -45,6 +46,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.renderer.entity.TippableArrowRenderer;
 import net.minecraft.client.renderer.entity.TntRenderer;
@@ -69,6 +71,7 @@ public class PECoreClient implements ClientModInitializer {
 		EMCManagerClient.register();
 		registerOverlays();
 		registerRenderers();
+		registerBlockRenderLayers();
 		addLayers();
 		registerItemProperties();
 		DumpMissingEmc.registerClientCommand();
@@ -160,6 +163,22 @@ public class PECoreClient implements ClientModInitializer {
 		EntityRendererRegistry.register(PEEntityTypes.NOVA_CATALYST_PRIMED.get(), TntRenderer::new);
 		EntityRendererRegistry.register(PEEntityTypes.NOVA_CATACLYSM_PRIMED.get(), TntRenderer::new);
 		EntityRendererRegistry.register(PEEntityTypes.HOMING_ARROW.get(), TippableArrowRenderer::new);
+	}
+
+	/**
+	 * Assigns block render layers explicitly.
+	 * <p>
+	 * NeoForge selects a block model's render layer from the {@code "render_type"} field inside the model JSON. Fabric
+	 * has no equivalent: the field is a NeoForge extension and is silently ignored by the vanilla/Fabric model loader,
+	 * and any block that is not registered here falls back to the {@code solid} render layer. The solid layer performs
+	 * neither an alpha test nor alpha blending and samples the mipmapped block atlas, so the fully transparent parts of
+	 * a cutout texture get averaged with the neighbour colours (MC's mipmap generation averages colours weighted by
+	 * alpha) and are then drawn opaque. The interdiction torch is such a cutout model, which made it render as a solid
+	 * green blob instead of a torch.
+	 */
+	private void registerBlockRenderLayers() {
+		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(),
+				PEBlocks.INTERDICTION_TORCH.getBlock(), PEBlocks.INTERDICTION_TORCH.getWallBlock());
 	}
 
 	private void addLayers() {
