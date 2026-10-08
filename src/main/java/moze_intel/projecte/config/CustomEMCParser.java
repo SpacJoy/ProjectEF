@@ -7,6 +7,10 @@ import it.unimi.dsi.fastutil.objects.Object2LongSortedMap;
 import it.unimi.dsi.fastutil.objects.Object2LongSortedMaps.UnmodifiableSortedMap;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import moze_intel.projecte.api.codec.IPECodecHelper;
 import moze_intel.projecte.api.nss.NSSItem;
@@ -91,6 +95,43 @@ public final class CustomEMCParser {
 			dirty = false;
 		}
 		return true;
+	}
+
+	/**
+	 * Removes every override whose base item belongs to the given namespace (mod id). Tags and component variants of the same namespace are removed as well.
+	 *
+	 * @return The number of entries removed, {@code 0} when there was nothing to remove, or {@code -1} when the write failed (the previous state is restored).
+	 */
+	public static int removeNamespace(HolderLookup.Provider registries, String namespace) {
+		if (currentEntries == null) {
+			return 0;
+		}
+		List<NSSItem> toRemove = new ArrayList<>();
+		for (NSSItem item : currentEntries.entries().keySet()) {
+			if (!item.representsTag() && item.getResourceLocation().getNamespace().equals(namespace)) {
+				toRemove.add(item);
+			}
+		}
+		if (toRemove.isEmpty()) {
+			return 0;
+		}
+		boolean wasDirty = dirty;
+		boolean wasPending = needsRemap;
+		Map<NSSItem, Long> previous = new LinkedHashMap<>(toRemove.size());
+		for (NSSItem item : toRemove) {
+			previous.put(item, currentEntries.entries().removeLong(item));
+		}
+		dirty = true;
+		needsRemap = true;
+		if (flushChanges(registries)) {
+			return toRemove.size();
+		}
+		for (Map.Entry<NSSItem, Long> entry : previous.entrySet()) {
+			currentEntries.entries().put(entry.getKey(), entry.getValue());
+		}
+		dirty = wasDirty;
+		needsRemap = wasPending;
+		return -1;
 	}
 
 	/** Saves one exact override; -1 removes it. A failed write leaves the previous state intact. */

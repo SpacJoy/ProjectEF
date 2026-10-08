@@ -186,9 +186,12 @@ public class PELangProvider extends BaseLanguageProvider {
 		add("gui.projecte.emc_manager.default", "Default (no override)");
 		add("gui.projecte.emc_manager.remove_help", "Save a zero override to disable EMC for this base item after applying.");
 		add("gui.projecte.emc_manager.reset_help", "Remove this base item's override and let the mappers recalculate it. Tag and component overrides are unchanged.");
+		add("gui.projecte.emc_manager.reset_mod", "Reset held mod");
+		add("gui.projecte.emc_manager.reset_mod_help", "Remove every custom EMC value belonging to the mod of the item in your main hand. Apply afterwards to recalculate them automatically.");
 		add("gui.projecte.emc_manager.apply_help", "Apply all saved changes, recalculate and synchronize EMC server-wide (may briefly pause the server). Requires set, remove and reset permissions.");
 		add("gui.projecte.emc_manager.confirm_remove", "Set the base EMC of %s to zero? Applying disables its EMC and may affect related recipes and learned knowledge.");
 		add("gui.projecte.emc_manager.confirm_reset", "Remove the base item override for %s? Applying will recalculate it from the remaining configuration and recipes.");
+		add("gui.projecte.emc_manager.confirm_reset_mod", "Remove all custom EMC values for mod %s? Applying will recalculate them from recipes and configuration.");
 		add("gui.projecte.emc_manager.confirm_close", "Close the manager? Unsaved input will be lost. Saved changes are retained, but pending changes still need Apply to take effect.");
 		add("gui.projecte.emc_manager.waiting", "Waiting for the server...");
 		add("gui.projecte.emc_manager.applying", "Recalculating server EMC, please wait...");
@@ -210,6 +213,8 @@ public class PELangProvider extends BaseLanguageProvider {
 		add("gui.projecte.emc_manager.status.cooldown", "Too many requests. Wait before retrying; server-wide recalculations are at least 5 seconds apart.");
 		add("gui.projecte.emc_manager.status.not_ready", "Server EMC data is not ready. Try again shortly.");
 		add("gui.projecte.emc_manager.status.mapper_disabled", "The server has disabled the custom EMC mapper; changes cannot be applied.");
+		add("gui.projecte.emc_manager.status.mod_reset", "Custom EMC values for the mod were cleared. Click Apply to take effect.");
+		add("gui.projecte.emc_manager.status.mod_no_override", "The mod has no custom EMC values to clear.");
 	}
 
 	private void addCommands() {

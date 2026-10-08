@@ -58,6 +58,10 @@ public final class EMCManager {
 			reply(player, request, permissions, Status.READY);
 			return;
 		}
+		if (request.action() == Action.RESET_MOD) {
+			resetMod(player, request, permissions);
+			return;
+		}
 		if (request.action() == Action.SET && request.value() <= 0) {
 			reply(player, request, permissions, Status.INVALID_VALUE);
 			return;
@@ -111,6 +115,7 @@ public final class EMCManager {
 			case SET -> (permissions & EMCManagerResponsePKT.CAN_SET) != 0;
 			case REMOVE -> (permissions & EMCManagerResponsePKT.CAN_REMOVE) != 0;
 			case RESET -> (permissions & EMCManagerResponsePKT.CAN_RESET) != 0;
+			case RESET_MOD -> (permissions & EMCManagerResponsePKT.CAN_RESET) != 0;
 			case APPLY -> permissions == EMCManagerResponsePKT.ALL_PERMISSIONS;
 		};
 	}
@@ -155,6 +160,27 @@ public final class EMCManager {
 		}
 		PECore.LOGGER.info("{} applied custom EMC changes ({} values)", player.getGameProfile().getName(), EMCMappingHandler.getEmcMapSize());
 		reply(player, request, permissions, Status.APPLIED);
+	}
+
+	private static void resetMod(ServerPlayer player, EMCManagerRequestPKT request, int permissions) {
+		long now = System.nanoTime();
+		Long lastEdit = LAST_EDIT.get(player);
+		if (lastEdit != null && now - lastEdit < 200_000_000L) {
+			reply(player, request, permissions, Status.COOLDOWN);
+			return;
+		}
+		LAST_EDIT.put(player, now);
+		String namespace = request.item().getNamespace();
+		int removed = CustomEMCParser.removeNamespace(player.registryAccess(), namespace);
+		if (removed < 0) {
+			reply(player, request, permissions, Status.SAVE_FAILED);
+			return;
+		} else if (removed == 0) {
+			reply(player, request, permissions, Status.MOD_NO_OVERRIDE);
+			return;
+		}
+		PECore.LOGGER.info("{} removed {} custom EMC override(s) for mod {}", player.getGameProfile().getName(), removed, namespace);
+		reply(player, request, permissions, Status.MOD_RESET);
 	}
 
 	private static void reply(ServerPlayer player, EMCManagerRequestPKT request, int permissions, Status status) {

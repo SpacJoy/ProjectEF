@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 public record EMCManagerRequestPKT(int requestId, Action action, ResourceLocation item, long value, long expectedValue) implements IPEPacket {
 
 	public enum Action {
-		QUERY, SET, REMOVE, RESET, APPLY
+		QUERY, SET, REMOVE, RESET, APPLY, RESET_MOD
 	}
 
 	public static final Type<EMCManagerRequestPKT> TYPE = new Type<>(PECore.rl("emc_manager_request"));

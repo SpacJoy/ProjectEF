@@ -20,6 +20,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
@@ -33,13 +34,14 @@ public class EMCManagerScreen extends Screen {
 	private List<ItemEntry> filtered = List.of();
 	private ItemStack selected = new ItemStack(Items.DIAMOND);
 	private EditBox searchBox, valueBox;
-	private Button save, remove, reset, apply, previous, next, held;
+	private Button save, remove, reset, apply, previous, next, held, resetMod;
 	private String searchText = "", valueText = "", serverValueText = "";
 	private Component status = text("waiting");
 	private boolean error, busy, loaded, pending, tooSmall;
 	private int left, top, panelWidth, panelHeight, listWidth, editorX, editorWidth, page, pageSize;
 	private int permissions, requestId = -1, waitingTicks;
 	private long currentValue, customValue = -1;
+	private ResourceLocation requestItem;
 	private Action lastAction = Action.QUERY;
 
 	public EMCManagerScreen(@Nullable Screen parent) {
@@ -82,6 +84,9 @@ public class EMCManagerScreen extends Screen {
 
 		held = addRenderableWidget(Button.builder(text("held"), button -> selectHeld()).bounds(left + panelWidth - 88, top + 5, 78, 20)
 				.tooltip(Tooltip.create(text("base_only"))).build());
+		resetMod = addRenderableWidget(Button.builder(text("reset_mod"), button -> resetHeldMod())
+				.bounds(left + panelWidth - 170, top + 5, 78, 20)
+				.tooltip(Tooltip.create(text("reset_mod_help"))).build());
 		searchBox = addRenderableWidget(new EditBox(font, left + 10, top + 37, listWidth, 18, text("search")));
 		searchBox.setMaxLength(128);
 		searchBox.setHint(text("search"));
@@ -149,6 +154,23 @@ public class EMCManagerScreen extends Screen {
 		}
 	}
 
+	private void resetHeldMod() {
+		if (busy || minecraft.player == null) {
+			return;
+		}
+		ItemStack heldStack = minecraft.player.getMainHandItem();
+		if (heldStack.isEmpty()) {
+			return;
+		}
+		ResourceLocation heldId = BuiltInRegistries.ITEM.getKey(heldStack.getItem());
+		minecraft.setScreen(new ConfirmScreen(confirmed -> {
+			minecraft.setScreen(this);
+			if (confirmed) {
+				request(Action.RESET_MOD, heldId);
+			}
+		}, text("reset_mod"), text("confirm_reset_mod", heldId.getNamespace())));
+	}
+
 	private void select(ItemStack stack) {
 		if (!busy) {
 			selected = stack.copy();
@@ -158,6 +180,10 @@ public class EMCManagerScreen extends Screen {
 	}
 
 	private void request(Action action) {
+		request(action, BuiltInRegistries.ITEM.getKey(selected.getItem()));
+	}
+
+	private void request(Action action, ResourceLocation target) {
 		if (busy) {
 			return;
 		}
@@ -171,17 +197,18 @@ public class EMCManagerScreen extends Screen {
 			return;
 		}
 		requestId = EMCManagerClient.nextRequestId();
+		requestItem = target;
 		lastAction = action;
 		busy = true;
 		waitingTicks = 0;
 		error = false;
 		status = text(action == Action.APPLY ? "applying" : "waiting");
-		PENetwork.sendToServer(new EMCManagerRequestPKT(requestId, action, BuiltInRegistries.ITEM.getKey(selected.getItem()), value, customValue));
+		PENetwork.sendToServer(new EMCManagerRequestPKT(requestId, action, target, value, customValue));
 		updateButtons();
 	}
 
 	public void receive(EMCManagerResponsePKT response) {
-		if (response.requestId() != requestId || !response.item().equals(BuiltInRegistries.ITEM.getKey(selected.getItem()))) {
+		if (response.requestId() != requestId || !response.item().equals(requestItem)) {
 			return;
 		}
 		busy = false;
@@ -192,7 +219,7 @@ public class EMCManagerScreen extends Screen {
 		status = response.status().message();
 		error = response.status().isError();
 		loaded = permissions != 0 && response.status() != Status.NOT_READY && response.status() != Status.INVALID_ITEM;
-		if (!error || response.status() == Status.CONFLICT || lastAction == Action.QUERY) {
+		if (lastAction != Action.RESET_MOD && (!error || response.status() == Status.CONFLICT || lastAction == Action.QUERY)) {
 			valueText = customValue > 0 ? Long.toString(customValue) : customValue == 0 ? "" : currentValue > 0 ? Long.toString(currentValue) : "";
 			serverValueText = valueText;
 			if (valueBox != null) {
@@ -223,6 +250,8 @@ public class EMCManagerScreen extends Screen {
 		previous.active = !busy && page > 0;
 		next.active = !busy && (page + 1) * pageSize < filtered.size();
 		held.active = !busy && minecraft.player != null && !minecraft.player.getMainHandItem().isEmpty();
+		resetMod.active = !busy && (permissions & EMCManagerResponsePKT.CAN_RESET) != 0
+				&& minecraft.player != null && !minecraft.player.getMainHandItem().isEmpty();
 		for (ItemButton row : rows) {
 			row.active = !busy;
 		}

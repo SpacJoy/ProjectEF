@@ -21,14 +21,18 @@ public record EMCManagerResponsePKT(int requestId, ResourceLocation item, long c
 	public static final int ALL_PERMISSIONS = CAN_SET | CAN_REMOVE | CAN_RESET;
 
 	public enum Status {
-		READY, SAVED, APPLIED, NO_PERMISSION, INVALID_ITEM, INVALID_VALUE, CONFLICT, SAVE_FAILED, REMAP_FAILED, COOLDOWN, NOT_READY, MAPPER_DISABLED;
+		READY, SAVED, APPLIED, NO_PERMISSION, INVALID_ITEM, INVALID_VALUE, CONFLICT, SAVE_FAILED, REMAP_FAILED, COOLDOWN, NOT_READY, MAPPER_DISABLED,
+		MOD_RESET, MOD_NO_OVERRIDE;
 
 		public Component message() {
 			return Component.translatable("gui.projecte.emc_manager.status." + name().toLowerCase(Locale.ROOT));
 		}
 
 		public boolean isError() {
-			return ordinal() > APPLIED.ordinal();
+			return switch (this) {
+				case READY, SAVED, APPLIED, MOD_RESET, MOD_NO_OVERRIDE -> false;
+				default -> true;
+			};
 		}
 	}
 
