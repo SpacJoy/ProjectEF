@@ -2,6 +2,17 @@
 
 All notable changes to ProjectEF Neo are documented here.
 
+## [1.3.4] - 2026-10-09
+
+### Added
+
+- The mode switch keybind (default `G`) can now also switch the mode of a mode item worn in an accessory (Trinkets) slot, but only while the main hand is empty, holds a vanilla item, or holds a ProjectE item that has no mode of its own. Items from other mods are deliberately left alone: they may bind the same key for themselves, and vanilla only ever dispatches a physical key to a single binding, so adding one more consumer is not something a mod can do safely. The Swiftwolf's Rending Gale exposes the mode changer capability now, so a ring held in a hand can be switched with that keybind too; previously only right-clicking worked.
+- The Swiftwolf's Rending Gale plays take-off and landing feedback to the player carrying it: a higher pitched chime when flight starts, the uncharge sound when it ends. This is deliberately independent of the ring's mode and of which mod is providing the flight, so flight ending unexpectedly (running out of EMC, an input being swallowed, another mod's gear being unequipped) is always noticeable. The sound is only sent to the affected player, and when the ring's own mode switch already announced the very same transition — running out of EMC switches the ring off and drops flight in one go — only that mode sound is played, so a single transition is never announced twice.
+
+### Changed
+
+- The Swiftwolf's Rending Gale now only grants flight while one of its flight modes is selected (`Flight` or `Flight + Shield`), instead of entering a flight mode automatically whenever the player happened to be airborne. Right-clicking cycles through all four modes (`Off` → `Flight` → `Shield` → `Flight + Shield`), the tooltip shows the current mode, and switching reports the new mode in chat. Flying with another mod's flight gear no longer drags the ring into a flight mode and quietly drains EMC for a flight it is not actually providing. Note that the ring still charges EMC if a flight mode is selected deliberately while another mod is providing the flight: Fabric has no per-source flight flag — every mod shares the single `mayfly` boolean — so the only way to find out whether the other gear would suffice on its own would be to withdraw the ring's contribution and see whether flight comes back.
+
 ## [1.3.3] - 2026-10-08
 
 ### Added

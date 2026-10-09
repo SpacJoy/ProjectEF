@@ -7,12 +7,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.IntFunction;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
+import moze_intel.projecte.api.capabilities.item.IModeChanger;
 import moze_intel.projecte.api.capabilities.item.IPedestalItem;
 import moze_intel.projecte.api.capabilities.item.IProjectileShooter;
 import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.gameObjs.entity.EntitySWRGProjectile;
 import moze_intel.projecte.gameObjs.items.ICapabilityAware;
 import moze_intel.projecte.gameObjs.items.ItemPE;
+import moze_intel.projecte.gameObjs.registries.PEAttachmentTypes;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.gameObjs.registries.PESoundEvents;
 import moze_intel.projecte.integration.IntegrationHelper;
@@ -26,6 +28,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
@@ -45,7 +48,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, ICapabilityAware {
+public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, ICapabilityAware, IModeChanger<SWRG.SWRGMode> {
 
 	public SWRG(Properties props) {
 		super(props.component(PEDataComponentTypes.SWRG_MODE.get(), SWRGMode.OFF)
@@ -64,8 +67,8 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 			return;
 		}
 		if (!hasEmc(player, stack, 64, true)) {
-			//If it is already off changeMode will just NO-OP
-			changeMode(player, stack, mode, SWRGMode.OFF);
+			//If it is already off applyMode will just NO-OP
+			applyMode(player, stack, mode, SWRGMode.OFF);
 			return;
 		}
 
@@ -88,7 +91,9 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 		}
 	}
 
-	private SWRGMode getMode(ItemStack stack) {
+	@NotNull
+	@Override
+	public SWRGMode getMode(@NotNull ItemStack stack) {
 		return stack.getOrDefault(PEDataComponentTypes.SWRG_MODE.get(), SWRGMode.OFF);
 	}
 
@@ -103,17 +108,27 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 		if (!level.isClientSide) {
-			SWRGMode oldMode = getMode(stack);
-			SWRGMode mode = changeMode(player, stack, oldMode, oldMode.next());
-			if (mode != oldMode) {
-				//Tell the player which mode they ended up in, as the flight modes are now the only way to enable flight
-				player.sendSystemMessage(PELang.MODE_SWITCH.translate(mode));
-			}
+			changeMode(player, stack, hand);
 		}
 		return InteractionResultHolder.success(stack);
 	}
 
-	private SWRGMode changeMode(Player player, ItemStack stack, SWRGMode oldMode, SWRGMode mode) {
+	/**
+	 * Cycles to the next mode and tells the player which mode they ended up in. Also used by the mode switch keybind (default G), which lets a
+	 * worn ring have its mode changed while the main hand is empty.
+	 */
+	@Override
+	public boolean changeMode(@NotNull Player player, @NotNull ItemStack stack, @Nullable InteractionHand hand) {
+		SWRGMode oldMode = getMode(stack);
+		SWRGMode mode = applyMode(player, stack, oldMode, oldMode.next());
+		if (mode == oldMode) {
+			return false;
+		}
+		player.sendSystemMessage(PELang.MODE_SWITCH.translate(mode));
+		return true;
+	}
+
+	private SWRGMode applyMode(Player player, ItemStack stack, SWRGMode oldMode, SWRGMode mode) {
 		if (mode == oldMode) {
 			return mode;
 		}
@@ -122,14 +137,20 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 			//Don't do sounds if the player is null
 			return mode;
 		}
+		SoundEvent sound = null;
 		if (mode == SWRGMode.OFF || oldMode == SWRGMode.SHIELDED_FLIGHT) {
 			//At least one mode deactivated
-			player.level().playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.UNCHARGE.get(), SoundSource.PLAYERS, 0.8F, 1.0F);
+			sound = PESoundEvents.UNCHARGE.get();
 		} else if (oldMode == SWRGMode.OFF || mode == SWRGMode.SHIELDED_FLIGHT) {
 			//At least one mode activated
-			player.level().playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.HEAL.get(), SoundSource.PLAYERS, 0.8F, 1.0F);
+			sound = PESoundEvents.HEAL.get();
 		}
-		//Doesn't handle going from mode 1 to 2 or 2 to 1
+		//Doesn't handle going from mode 1 to 2 or 2 to 1, which is why the sound may still be null here
+		if (sound != null) {
+			player.level().playSound(null, player.getX(), player.getY(), player.getZ(), sound, SoundSource.PLAYERS, 0.8F, 1.0F);
+			//This transition has been announced now, so the take-off/landing feedback must stay quiet for it
+			player.setAttached(PEAttachmentTypes.SWRG_MODE_SOUND, true);
+		}
 		return mode;
 	}
 

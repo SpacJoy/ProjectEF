@@ -8,6 +8,7 @@ import moze_intel.projecte.api.capabilities.item.IExtraFunction;
 import moze_intel.projecte.api.capabilities.item.IItemCharge;
 import moze_intel.projecte.api.capabilities.item.IModeChanger;
 import moze_intel.projecte.api.capabilities.item.IProjectileShooter;
+import moze_intel.projecte.api.item_handlers.IItemHandler;
 import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.gameObjs.items.armor.GemArmorBase;
 import moze_intel.projecte.gameObjs.items.armor.GemChest;
@@ -15,13 +16,16 @@ import moze_intel.projecte.gameObjs.items.armor.GemFeet;
 import moze_intel.projecte.gameObjs.items.armor.GemHelmet;
 import moze_intel.projecte.gameObjs.registries.PEAttachmentTypes;
 import moze_intel.projecte.gameObjs.registries.PEItems;
+import moze_intel.projecte.integration.IntegrationHelper;
 import moze_intel.projecte.network.packets.IPEPacket;
 import moze_intel.projecte.utils.PEKeybind;
 import moze_intel.projecte.utils.PlayerHelper;
 import moze_intel.projecte.utils.text.ILangEntry;
 import moze_intel.projecte.utils.text.PELang;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
@@ -102,6 +106,48 @@ public record KeyPressPKT(PEKeybind key) implements IPEPacket {
 						return;
 					}
 				}
+			}
+		}
+		//Nothing in either hand handled the key. Fall back to a mode item worn in an accessory slot (a ring in its ring slot for example),
+		// but only while the main hand cannot be doing something with that key itself.
+		if (key == PEKeybind.MODE && mayFallBackFrom(player.getMainHandItem())) {
+			changeWornMode(player);
+		}
+	}
+
+	/**
+	 * Whether the accessory fallback is allowed to react to the mode key while the given stack is in the main hand.
+	 * <p>
+	 * Only stacks whose behaviour is actually known may pass: an empty stack (which resolves to {@code minecraft:air}), a vanilla item, or
+	 * one of our own items that has no mode of its own. Items from other mods are left alone, because they may well bind the same key for
+	 * themselves, and vanilla only ever dispatches a physical key to a single binding.
+	 */
+	private static boolean mayFallBackFrom(ItemStack stack) {
+		String namespace = BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace();
+		if (!namespace.equals(ResourceLocation.DEFAULT_NAMESPACE) && !namespace.equals(PECore.MODID)) {
+			//Another mod's item: never override it
+			return false;
+		}
+		//A held mode item is handled by the hand loop above; this guards the case where that reported nothing to do
+		return PECapabilities.MODE_CHANGER_ITEM_CAPABILITY.find(stack) == null;
+	}
+
+	/**
+	 * Changes the mode of the first accessory (Trinkets) item that exposes the mode changer capability. Worn stacks are live references that
+	 * are not part of the player's container menu, so the slot has to be flagged afterwards or the change never reaches the client.
+	 */
+	private static void changeWornMode(Player player) {
+		IItemHandler curios = IntegrationHelper.getCuriosInventory(player);
+		if (curios == null) {
+			return;
+		}
+		for (int i = 0, slots = curios.getSlots(); i < slots; i++) {
+			ItemStack stack = curios.getStackInSlot(i);
+			IModeChanger<?> changer = PECapabilities.MODE_CHANGER_ITEM_CAPABILITY.find(stack);
+			//Pass a null hand: the stack is not in one of the player's hands
+			if (changer != null && changer.changeMode(player, stack, null)) {
+				curios.markSlotChanged(i);
+				return;
 			}
 		}
 	}
