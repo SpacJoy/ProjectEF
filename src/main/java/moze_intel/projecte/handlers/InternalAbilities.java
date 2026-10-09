@@ -4,7 +4,9 @@ import com.google.common.base.Predicates;
 import java.util.function.Predicate;
 import moze_intel.projecte.PECore;
 import moze_intel.projecte.gameObjs.items.ItemPE;
+import moze_intel.projecte.gameObjs.items.rings.SWRG.SWRGMode;
 import moze_intel.projecte.gameObjs.registries.PEAttachmentTypes;
+import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.gameObjs.registries.PEItems;
 import moze_intel.projecte.utils.PlayerHelper;
 import net.minecraft.core.Holder;
@@ -79,7 +81,17 @@ public class InternalAbilities {
 
 	private static boolean shouldPlayerFly(Player player) {
 		return PlayerHelper.checkHotbarCurios(player, (p, stack) ->
-				stack.is(PEItems.ARCANA_RING.get()) || (stack.is(PEItems.SWIFTWOLF_RENDING_GALE.get()) && ItemPE.hasEmc(p, stack, 64, true)));
+				stack.is(PEItems.ARCANA_RING.get()) || (stack.is(PEItems.SWIFTWOLF_RENDING_GALE.get()) && hasSwrgFlightMode(stack)
+						&& ItemPE.hasEmc(p, stack, 64, true)));
+	}
+
+	/**
+	 * The Swiftwolf's Rending Gale only provides flight while the player explicitly has one of its flight modes selected. Flight from any
+	 * other source (another mod's flight gear, creative mode, ...) must not be attributed to this ring, otherwise it would grant and charge
+	 * EMC for a flight it is not actually providing.
+	 */
+	private static boolean hasSwrgFlightMode(ItemStack stack) {
+		return stack.getOrDefault(PEDataComponentTypes.SWRG_MODE.get(), SWRGMode.OFF).hasFlight();
 	}
 
 	/**

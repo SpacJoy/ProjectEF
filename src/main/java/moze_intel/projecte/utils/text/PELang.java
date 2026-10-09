@@ -121,6 +121,10 @@ public enum PELang implements ILangEntry {
 	MODE_PICK_4("mode", "pick.4"),
 	MODE_RED_SWORD_1("mode", "red_sword.1"),
 	MODE_RED_SWORD_2("mode", "red_sword.2"),
+	MODE_SWRG_1("mode", "swrg.1"),
+	MODE_SWRG_2("mode", "swrg.2"),
+	MODE_SWRG_3("mode", "swrg.3"),
+	MODE_SWRG_4("mode", "swrg.4"),
 	//Pedestal
 	PEDESTAL_DISABLED("pedestal", "item_disabled"),
 	PEDESTAL_ON("pedestal", "on_pedestal"),

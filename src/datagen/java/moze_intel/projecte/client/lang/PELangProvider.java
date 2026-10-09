@@ -459,6 +459,10 @@ public class PELangProvider extends BaseLanguageProvider {
 		add(PELang.MODE_PICK_2, "3x Tallshot");
 		add(PELang.MODE_PICK_3, "3x Wideshot");
 		add(PELang.MODE_PICK_4, "3x Longshot");
+		add(PELang.MODE_SWRG_1, "Off");
+		add(PELang.MODE_SWRG_2, "Flight");
+		add(PELang.MODE_SWRG_3, "Shield");
+		add(PELang.MODE_SWRG_4, "Flight + Shield");
 	}
 
 	private void addPedestalTooltips() {

@@ -18,6 +18,8 @@ import moze_intel.projecte.gameObjs.registries.PESoundEvents;
 import moze_intel.projecte.integration.IntegrationHelper;
 import moze_intel.projecte.utils.MathUtils;
 import moze_intel.projecte.utils.WorldHelper;
+import moze_intel.projecte.utils.text.IHasTranslationKey;
+import moze_intel.projecte.utils.text.IHasTranslationKey.IHasEnumNameTranslationKey;
 import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -35,7 +37,9 @@ import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
@@ -65,14 +69,9 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 			return;
 		}
 
-		if (player.getAbilities().flying) {
-			if (!mode.hasFlight()) {
-				mode = changeMode(player, stack, mode, mode.toggleFlight());
-			}
-		} else if (mode.hasFlight()) {
-			mode = changeMode(player, stack, mode, mode.toggleFlight());
-		}
-
+		//Note: The ring's mode is entirely player controlled (see SWRGMode#next). It deliberately does NOT follow
+		// Abilities#flying, because flying with another mod's flight gear (or creative flight) is not a reason for this
+		// ring to enter a flight mode and drain EMC for a flight it is not actually providing.
 		float toRemove = mode.hasShield() ? 0.32F : 0;
 		if (mode.hasFlight() && player.getAbilities().flying) {
 			toRemove += 0.32F;
@@ -93,13 +92,23 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 		return stack.getOrDefault(PEDataComponentTypes.SWRG_MODE.get(), SWRGMode.OFF);
 	}
 
+	@Override
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, tooltip, flags);
+		tooltip.add(PELang.CURRENT_MODE.translateColored(ChatFormatting.AQUA, getMode(stack)));
+	}
+
 	@NotNull
 	@Override
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 		if (!level.isClientSide) {
 			SWRGMode oldMode = getMode(stack);
-			changeMode(player, stack, oldMode, oldMode.next());
+			SWRGMode mode = changeMode(player, stack, oldMode, oldMode.next());
+			if (mode != oldMode) {
+				//Tell the player which mode they ended up in, as the flight modes are now the only way to enable flight
+				player.sendSystemMessage(PELang.MODE_SWITCH.translate(mode));
+			}
 		}
 		return InteractionResultHolder.success(stack);
 	}
@@ -174,26 +183,33 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 		IntegrationHelper.registerCuriosCapability(this);
 	}
 
-	public enum SWRGMode implements StringRepresentable {//Change the mode of SWRG. Modes:<p> 0 = Ring Off<p> 1 = Flight<p> 2 = Shield<p> 3 = Flight + Shield<p>
-		OFF,
-		FLIGHT,
-		SHIELD,
-		SHIELDED_FLIGHT;
+	public enum SWRGMode implements IHasEnumNameTranslationKey, StringRepresentable {//Change the mode of SWRG. Modes:<p> 0 = Ring Off<p> 1 = Flight<p> 2 = Shield<p> 3 = Flight + Shield<p>
+		OFF(PELang.MODE_SWRG_1),
+		FLIGHT(PELang.MODE_SWRG_2),
+		SHIELD(PELang.MODE_SWRG_3),
+		SHIELDED_FLIGHT(PELang.MODE_SWRG_4);
 
 		public static final Codec<SWRGMode> CODEC = StringRepresentable.fromEnum(SWRGMode::values);
 		public static final IntFunction<SWRGMode> BY_ID = ByIdMap.continuous(SWRGMode::ordinal, values(), ByIdMap.OutOfBoundsStrategy.WRAP);
 		public static final StreamCodec<ByteBuf, SWRGMode> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, SWRGMode::ordinal);
 
+		private final IHasTranslationKey langEntry;
 		private final String serializedName;
 
-		SWRGMode() {
+		SWRGMode(IHasTranslationKey langEntry) {
 			this.serializedName = name().toLowerCase(Locale.ROOT);
+			this.langEntry = langEntry;
 		}
 
 		@NotNull
 		@Override
 		public String getSerializedName() {
 			return serializedName;
+		}
+
+		@Override
+		public String getTranslationKey() {
+			return langEntry.getTranslationKey();
 		}
 
 		public boolean hasFlight() {
@@ -204,21 +220,16 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 			return this == SHIELD || this == SHIELDED_FLIGHT;
 		}
 
-		public SWRGMode toggleFlight() {
-			return switch (this) {
-				case OFF -> FLIGHT;
-				case SHIELD -> SHIELDED_FLIGHT;
-				case FLIGHT -> OFF;
-				case SHIELDED_FLIGHT -> SHIELD;
-			};
-		}
-
+		/**
+		 * Cycles through every mode so that the player explicitly turns the ring's flight on and off. This is what makes the ring's flight
+		 * attributable: flight is only granted (and only charged for) while one of the flight modes is selected.
+		 */
 		public SWRGMode next() {
 			return switch (this) {
-				case OFF -> SHIELD;
-				case SHIELD -> OFF;
-				case FLIGHT -> SHIELDED_FLIGHT;
-				case SHIELDED_FLIGHT -> FLIGHT;
+				case OFF -> FLIGHT;
+				case FLIGHT -> SHIELD;
+				case SHIELD -> SHIELDED_FLIGHT;
+				case SHIELDED_FLIGHT -> OFF;
 			};
 		}
 	}
