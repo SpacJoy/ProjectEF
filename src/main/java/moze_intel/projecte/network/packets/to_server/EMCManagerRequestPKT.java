@@ -14,7 +14,11 @@ import org.jetbrains.annotations.NotNull;
 public record EMCManagerRequestPKT(int requestId, Action action, ResourceLocation item, long value, long expectedValue) implements IPEPacket {
 
 	public enum Action {
-		QUERY, SET, REMOVE, RESET, APPLY, RESET_MOD
+		QUERY, SET, REMOVE, RESET, APPLY, RESET_MOD,
+		/**
+		 * Changes whether the exploit warnings of the next EMC mapping are logged to the server log. The packet's value holds the requested state, 1 for enabled.
+		 */
+		LOG_EXPLOITS
 	}
 
 	public static final Type<EMCManagerRequestPKT> TYPE = new Type<>(PECore.rl("emc_manager_request"));

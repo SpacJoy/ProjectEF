@@ -137,6 +137,19 @@ public final class EMCMappingHandler {
 		}
 	}
 
+	/**
+	 * Changes whether the exploit logging from the previous mapping is logged to the server log, and persists the setting.
+	 *
+	 * @return False if the mapping config has not been set up yet, in which case nothing was changed.
+	 */
+	public static boolean setLogFoundExploits(boolean log) {
+		if (!MappingConfig.setLogExploits(log)) {
+			return false;
+		}
+		SimpleGraphMapper.setLogFoundExploits(log);
+		return true;
+	}
+
 	private static void fireEmcRemapEvent() {
 		//Start by doing our implementations
 		FuelMapper.loadMap();

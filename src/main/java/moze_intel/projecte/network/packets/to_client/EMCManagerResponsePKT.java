@@ -13,7 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 public record EMCManagerResponsePKT(int requestId, ResourceLocation item, long currentValue, long customValue,
-		int permissions, boolean pending, Status status) implements IPEPacket {
+		int permissions, boolean pending, Status status, boolean logExploits) implements IPEPacket {
 
 	public static final int CAN_SET = 1;
 	public static final int CAN_REMOVE = 2;
@@ -22,7 +22,7 @@ public record EMCManagerResponsePKT(int requestId, ResourceLocation item, long c
 
 	public enum Status {
 		READY, SAVED, APPLIED, NO_PERMISSION, INVALID_ITEM, INVALID_VALUE, CONFLICT, SAVE_FAILED, REMAP_FAILED, COOLDOWN, NOT_READY, MAPPER_DISABLED,
-		MOD_RESET, MOD_NO_OVERRIDE;
+		MOD_RESET, MOD_NO_OVERRIDE, LOG_ENABLED, LOG_DISABLED;
 
 		public Component message() {
 			return Component.translatable("gui.projecte.emc_manager.status." + name().toLowerCase(Locale.ROOT));
@@ -30,7 +30,7 @@ public record EMCManagerResponsePKT(int requestId, ResourceLocation item, long c
 
 		public boolean isError() {
 			return switch (this) {
-				case READY, SAVED, APPLIED, MOD_RESET, MOD_NO_OVERRIDE -> false;
+				case READY, SAVED, APPLIED, MOD_RESET, MOD_NO_OVERRIDE, LOG_ENABLED, LOG_DISABLED -> false;
 				default -> true;
 			};
 		}
@@ -41,7 +41,7 @@ public record EMCManagerResponsePKT(int requestId, ResourceLocation item, long c
 		@Override
 		public EMCManagerResponsePKT decode(RegistryFriendlyByteBuf buffer) {
 			return new EMCManagerResponsePKT(buffer.readVarInt(), buffer.readResourceLocation(), buffer.readLong(), buffer.readLong(),
-					buffer.readVarInt(), buffer.readBoolean(), buffer.readEnum(Status.class));
+					buffer.readVarInt(), buffer.readBoolean(), buffer.readEnum(Status.class), buffer.readBoolean());
 		}
 
 		@Override
@@ -53,6 +53,7 @@ public record EMCManagerResponsePKT(int requestId, ResourceLocation item, long c
 			buffer.writeVarInt(packet.permissions);
 			buffer.writeBoolean(packet.pending);
 			buffer.writeEnum(packet.status);
+			buffer.writeBoolean(packet.logExploits);
 		}
 	};
 

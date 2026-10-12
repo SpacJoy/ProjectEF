@@ -34,10 +34,10 @@ public class EMCManagerScreen extends Screen {
 	private List<ItemEntry> filtered = List.of();
 	private ItemStack selected = new ItemStack(Items.DIAMOND);
 	private EditBox searchBox, valueBox;
-	private Button save, remove, reset, apply, previous, next, held, resetMod;
+	private Button save, remove, reset, apply, previous, next, held, resetMod, logToggle;
 	private String searchText = "", valueText = "", serverValueText = "";
 	private Component status = text("waiting");
-	private boolean error, busy, loaded, pending, tooSmall;
+	private boolean error, busy, loaded, pending, tooSmall, logExploits = true;
 	private int left, top, panelWidth, panelHeight, listWidth, editorX, editorWidth, page, pageSize;
 	private int permissions, requestId = -1, waitingTicks;
 	private long currentValue, customValue = -1;
@@ -113,6 +113,10 @@ public class EMCManagerScreen extends Screen {
 				.bounds(editorX, top + 158, half, 20).tooltip(Tooltip.create(text("remove_help"))).build());
 		reset = addRenderableWidget(Button.builder(text("reset"), button -> confirm(Action.RESET))
 				.bounds(editorX + half + 4, top + 158, editorWidth - half - 4, 20).tooltip(Tooltip.create(text("reset_help"))).build());
+		logToggle = addRenderableWidget(Button.builder(text(logExploits ? "log_exploits_on" : "log_exploits_off"), button -> toggleLogExploits())
+				.bounds(editorX, top + 182, editorWidth, 20).tooltip(Tooltip.create(text("log_exploits_help"))).build());
+		//Hide the toggle instead of overlapping the remove/reset row or the status line when the window is very short
+		logToggle.visible = panelHeight >= 250;
 		int footer = top + panelHeight - 26;
 		previous = addRenderableWidget(Button.builder(Component.literal("<"), button -> changePage(-1)).bounds(left + 10, footer, 22, 20).build());
 		next = addRenderableWidget(Button.builder(Component.literal(">"), button -> changePage(1)).bounds(left + listWidth - 12, footer, 22, 20).build());
@@ -171,6 +175,12 @@ public class EMCManagerScreen extends Screen {
 		}, text("reset_mod"), text("confirm_reset_mod", heldId.getNamespace())));
 	}
 
+	private void toggleLogExploits() {
+		if (!busy) {
+			request(Action.LOG_EXPLOITS, BuiltInRegistries.ITEM.getKey(selected.getItem()), logExploits ? 0 : 1);
+		}
+	}
+
 	private void select(ItemStack stack) {
 		if (!busy) {
 			selected = stack.copy();
@@ -180,10 +190,14 @@ public class EMCManagerScreen extends Screen {
 	}
 
 	private void request(Action action) {
-		request(action, BuiltInRegistries.ITEM.getKey(selected.getItem()));
+		request(action, BuiltInRegistries.ITEM.getKey(selected.getItem()), parsedValue());
 	}
 
 	private void request(Action action, ResourceLocation target) {
+		request(action, target, parsedValue());
+	}
+
+	private void request(Action action, ResourceLocation target, long value) {
 		if (busy) {
 			return;
 		}
@@ -192,7 +206,6 @@ public class EMCManagerScreen extends Screen {
 			error = true;
 			return;
 		}
-		long value = parsedValue();
 		if (action == Action.SET && value <= 0) {
 			return;
 		}
@@ -214,12 +227,14 @@ public class EMCManagerScreen extends Screen {
 		busy = false;
 		permissions = response.permissions();
 		pending = response.pending();
+		logExploits = response.logExploits();
 		currentValue = response.currentValue();
 		customValue = response.customValue();
 		status = response.status().message();
 		error = response.status().isError();
 		loaded = permissions != 0 && response.status() != Status.NOT_READY && response.status() != Status.INVALID_ITEM;
-		if (lastAction != Action.RESET_MOD && (!error || response.status() == Status.CONFLICT || lastAction == Action.QUERY)) {
+		//Toggling the warnings must not overwrite what the administrator typed into the value box; neither must a mod wide reset, which has no single value
+		if (lastAction != Action.RESET_MOD && lastAction != Action.LOG_EXPLOITS && (!error || response.status() == Status.CONFLICT || lastAction == Action.QUERY)) {
 			valueText = customValue > 0 ? Long.toString(customValue) : customValue == 0 ? "" : currentValue > 0 ? Long.toString(currentValue) : "";
 			serverValueText = valueText;
 			if (valueBox != null) {
@@ -255,6 +270,15 @@ public class EMCManagerScreen extends Screen {
 		for (ItemButton row : rows) {
 			row.active = !busy;
 		}
+		updateLogToggle();
+	}
+
+	private void updateLogToggle() {
+		if (logToggle == null) {
+			return;
+		}
+		logToggle.setMessage(text(logExploits ? "log_exploits_on" : "log_exploits_off"));
+		logToggle.active = loaded && !busy && permissions == EMCManagerResponsePKT.ALL_PERMISSIONS;
 	}
 
 	private void confirm(Action action) {

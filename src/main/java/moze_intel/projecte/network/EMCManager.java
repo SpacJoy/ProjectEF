@@ -41,6 +41,10 @@ public final class EMCManager {
 			reply(player, request, permissions, Status.NO_PERMISSION);
 			return;
 		}
+		if (request.action() == Action.LOG_EXPLOITS) {
+			logExploits(player, request, permissions);
+			return;
+		}
 		if (CustomEMCParser.currentEntries == null) {
 			reply(player, request, permissions, Status.NOT_READY);
 			return;
@@ -117,7 +121,19 @@ public final class EMCManager {
 			case RESET -> (permissions & EMCManagerResponsePKT.CAN_RESET) != 0;
 			case RESET_MOD -> (permissions & EMCManagerResponsePKT.CAN_RESET) != 0;
 			case APPLY -> permissions == EMCManagerResponsePKT.ALL_PERMISSIONS;
+			//Turning the mapping warnings back on is only useful to someone who can also remap, so it uses the same gate as Apply
+			case LOG_EXPLOITS -> permissions == EMCManagerResponsePKT.ALL_PERMISSIONS;
 		};
+	}
+
+	private static void logExploits(ServerPlayer player, EMCManagerRequestPKT request, int permissions) {
+		boolean log = request.value() == 1;
+		if (!EMCMappingHandler.setLogFoundExploits(log)) {
+			reply(player, request, permissions, Status.NOT_READY);
+			return;
+		}
+		PECore.LOGGER.info("{} {} EMC exploit warnings", player.getGameProfile().getName(), log ? "enabled" : "disabled");
+		reply(player, request, permissions, log ? Status.LOG_ENABLED : Status.LOG_DISABLED);
 	}
 
 	private static void apply(ServerPlayer player, EMCManagerRequestPKT request, int permissions) {
@@ -192,6 +208,6 @@ public final class EMCManager {
 			custom = CustomEMCParser.currentEntries.entries().getLong(NSSItem.createItem(request.item()));
 		}
 		PENetwork.sendToPlayer(player, new EMCManagerResponsePKT(request.requestId(), request.item(), current, custom,
-				permissions, CustomEMCParser.needsRemap(), status));
+				permissions, CustomEMCParser.needsRemap(), status, MappingConfig.logExploits()));
 	}
 }

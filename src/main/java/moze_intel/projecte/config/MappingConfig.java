@@ -89,6 +89,20 @@ public class MappingConfig extends BasePEConfig {
 		return INSTANCE == null || INSTANCE.logExploits.get();
 	}
 
+	/**
+	 * Changes the exploit logging setting at runtime and persists it to the config file.
+	 *
+	 * @return False if the config has not been set up yet, in which case nothing was changed.
+	 */
+	public static boolean setLogExploits(boolean log) {
+		if (INSTANCE == null) {
+			return false;
+		}
+		INSTANCE.logExploits.set(log);
+		INSTANCE.save();
+		return true;
+	}
+
 	public static boolean enableAvaritiaEMC() {
 		return INSTANCE != null && INSTANCE.enableAvaritiaEMC.get();
 	}

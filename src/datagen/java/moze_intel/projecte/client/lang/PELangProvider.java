@@ -189,6 +189,9 @@ public class PELangProvider extends BaseLanguageProvider {
 		add("gui.projecte.emc_manager.reset_mod", "Reset held mod");
 		add("gui.projecte.emc_manager.reset_mod_help", "Remove every custom EMC value belonging to the mod of the item in your main hand. Apply afterwards to recalculate them automatically.");
 		add("gui.projecte.emc_manager.apply_help", "Apply all saved changes, recalculate and synchronize EMC server-wide (may briefly pause the server). Requires set, remove and reset permissions.");
+		add("gui.projecte.emc_manager.log_exploits_on", "EMC Exploit Warnings: ON");
+		add("gui.projecte.emc_manager.log_exploits_off", "EMC Exploit Warnings: OFF");
+		add("gui.projecte.emc_manager.log_exploits_help", "Write the EMC exploit warnings found while mapping to the server log. Turn them off to keep the log clean, turn them back on when hunting for exploits; the change applies from the next mapping on, so click Apply or restart the server afterwards. Requires set, remove and reset permissions.");
 		add("gui.projecte.emc_manager.confirm_remove", "Set the base EMC of %s to zero? Applying disables its EMC and may affect related recipes and learned knowledge.");
 		add("gui.projecte.emc_manager.confirm_reset", "Remove the base item override for %s? Applying will recalculate it from the remaining configuration and recipes.");
 		add("gui.projecte.emc_manager.confirm_reset_mod", "Remove all custom EMC values for mod %s? Applying will recalculate them from recipes and configuration.");
@@ -215,6 +218,8 @@ public class PELangProvider extends BaseLanguageProvider {
 		add("gui.projecte.emc_manager.status.mapper_disabled", "The server has disabled the custom EMC mapper; changes cannot be applied.");
 		add("gui.projecte.emc_manager.status.mod_reset", "Custom EMC values for the mod were cleared. Click Apply to take effect.");
 		add("gui.projecte.emc_manager.status.mod_no_override", "The mod has no custom EMC values to clear.");
+		add("gui.projecte.emc_manager.status.log_enabled", "EMC exploit warnings enabled. They apply from the next mapping on.");
+		add("gui.projecte.emc_manager.status.log_disabled", "EMC exploit warnings disabled.");
 	}
 
 	private void addCommands() {
