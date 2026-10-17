@@ -9,8 +9,8 @@ import net.minecraft.world.level.material.MapColor;
 import org.jetbrains.annotations.NotNull;
 
 public enum EnumMatterType implements StringRepresentable, IMatterType {
-	DARK_MATTER("dark_matter", 3, 14, 12, PETags.Blocks.INCORRECT_FOR_DARK_MATTER_TOOL, MapColor.COLOR_BLACK),
-	RED_MATTER("red_matter", 4, 16, 14, PETags.Blocks.INCORRECT_FOR_RED_MATTER_TOOL, MapColor.COLOR_RED);
+	DARK_MATTER("dark_matter", 3, 14, 12, 20, PETags.Blocks.INCORRECT_FOR_DARK_MATTER_TOOL, MapColor.COLOR_BLACK),
+	RED_MATTER("red_matter", 4, 16, 14, 25, PETags.Blocks.INCORRECT_FOR_RED_MATTER_TOOL, MapColor.COLOR_RED);
 
 	public static final Codec<EnumMatterType> CODEC = StringRepresentable.fromEnum(EnumMatterType::values);
 
@@ -19,13 +19,16 @@ public enum EnumMatterType implements StringRepresentable, IMatterType {
 	private final float attackDamage;
 	private final float efficiency;
 	private final float chargeModifier;
+	private final int enchantmentValue;
 	private final MapColor mapColor;
 
-	EnumMatterType(String name, float attackDamage, float efficiency, float chargeModifier, TagKey<Block> incorrectBlockForDrops, MapColor mapColor) {
+	EnumMatterType(String name, float attackDamage, float efficiency, float chargeModifier, int enchantmentValue, TagKey<Block> incorrectBlockForDrops,
+			MapColor mapColor) {
 		this.name = name;
 		this.attackDamage = attackDamage;
 		this.efficiency = efficiency;
 		this.chargeModifier = chargeModifier;
+		this.enchantmentValue = enchantmentValue;
 		this.incorrectBlockForDrops = incorrectBlockForDrops;
 		this.mapColor = mapColor;
 	}
@@ -69,7 +72,7 @@ public enum EnumMatterType implements StringRepresentable, IMatterType {
 
 	@Override
 	public int getEnchantmentValue() {
-		return 0;
+		return enchantmentValue;
 	}
 
 	@NotNull

@@ -56,7 +56,7 @@ public class PEPickaxe extends PickaxeItem implements IItemCharge, IItemMode<Pic
 
 	@Override
 	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return false;
+		return ItemHelper.isEnchantableEquipment(stack);
 	}
 
 	@Override

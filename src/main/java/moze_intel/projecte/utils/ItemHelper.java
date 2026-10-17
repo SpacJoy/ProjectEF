@@ -103,6 +103,17 @@ public final class ItemHelper {
 	}
 
 	/**
+	 * Our gear is not durability based (charge and stored EMC take that role), so the vanilla default implementation of {@link net.minecraft.world.item.Item#isEnchantable}
+	 * always rejects it because it requires a {@code MAX_DAMAGE} component. Player facing gear is meant to be enchantable like vanilla equipment, so we only require the
+	 * stack to be unstackable.
+	 *
+	 * @return Whether the given stack of ours may be enchanted.
+	 */
+	public static boolean isEnchantableEquipment(ItemStack stack) {
+		return stack.getMaxStackSize() == 1;
+	}
+
+	/**
 	 * @return The amount of the given stack that could not fit. If it all fit, zero is returned
 	 */
 	public static int simulateFit(NonNullList<ItemStack> inv, ItemStack stack) {

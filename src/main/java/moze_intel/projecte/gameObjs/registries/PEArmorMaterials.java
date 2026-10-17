@@ -4,6 +4,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import moze_intel.projecte.PECore;
+import moze_intel.projecte.gameObjs.EnumMatterType;
 import moze_intel.projecte.gameObjs.registration.PEDeferredHolder;
 import moze_intel.projecte.gameObjs.registration.PEDeferredRegister;
 import net.minecraft.Util;
@@ -27,13 +28,18 @@ public class PEArmorMaterials {
 		map.put(ArmorItem.Type.BODY, 11);
 	});
 
+	//Note: The enchantment value of our armor matches the one of the corresponding tools of the same matter tier,
+	// as the armor is meant to be enchantable just like vanilla gear.
 	public static final PEDeferredHolder<ArmorMaterial, ArmorMaterial> DARK_MATTER = ARMOR_MATERIALS.register("dark_matter", rl -> new ArmorMaterial(
-			DIAMOND_RESISTANCES, 0, SoundEvents.ARMOR_EQUIP_NETHERITE, () -> Ingredient.EMPTY, List.of(new ArmorMaterial.Layer(rl)), 2, 0.1F
+			DIAMOND_RESISTANCES, EnumMatterType.DARK_MATTER.getEnchantmentValue(), SoundEvents.ARMOR_EQUIP_NETHERITE, () -> Ingredient.EMPTY,
+			List.of(new ArmorMaterial.Layer(rl)), 2, 0.1F
 	));
 	public static final PEDeferredHolder<ArmorMaterial, ArmorMaterial> RED_MATTER = ARMOR_MATERIALS.register("red_matter", rl -> new ArmorMaterial(
-			DIAMOND_RESISTANCES, 0, SoundEvents.ARMOR_EQUIP_NETHERITE, () -> Ingredient.EMPTY, List.of(new ArmorMaterial.Layer(rl)), 2, 0.2F
+			DIAMOND_RESISTANCES, EnumMatterType.RED_MATTER.getEnchantmentValue(), SoundEvents.ARMOR_EQUIP_NETHERITE, () -> Ingredient.EMPTY,
+			List.of(new ArmorMaterial.Layer(rl)), 2, 0.2F
 	));
 	public static final PEDeferredHolder<ArmorMaterial, ArmorMaterial> GEM_ARMOR = ARMOR_MATERIALS.register("gem_armor", rl -> new ArmorMaterial(
-			DIAMOND_RESISTANCES, 0, SoundEvents.ARMOR_EQUIP_NETHERITE, () -> Ingredient.EMPTY, List.of(new ArmorMaterial.Layer(rl)), 2, 0.25F
+			DIAMOND_RESISTANCES, EnumMatterType.RED_MATTER.getEnchantmentValue(), SoundEvents.ARMOR_EQUIP_NETHERITE, () -> Ingredient.EMPTY,
+			List.of(new ArmorMaterial.Layer(rl)), 2, 0.25F
 	));
 }

@@ -7,6 +7,7 @@ import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.items.IHasConditionalAttributes;
 import moze_intel.projecte.gameObjs.items.IHasConditionalAttributes.AttributeCollector;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
+import moze_intel.projecte.utils.ItemHelper;
 import moze_intel.projecte.utils.PlayerHelper;
 import moze_intel.projecte.utils.ToolHelper;
 import net.minecraft.world.InteractionHand;
@@ -35,8 +36,8 @@ public class PESword extends SwordItem implements IExtraFunction, IItemCharge, I
 	}
 
 	@Override
-	public int getEnchantmentValue() {
-		return 0;
+	public boolean isEnchantable(@NotNull ItemStack stack) {
+		return ItemHelper.isEnchantableEquipment(stack);
 	}
 
 	@Override

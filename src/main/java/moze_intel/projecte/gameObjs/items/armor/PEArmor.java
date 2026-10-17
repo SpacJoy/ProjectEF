@@ -1,5 +1,6 @@
 package moze_intel.projecte.gameObjs.items.armor;
 
+import moze_intel.projecte.utils.ItemHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -15,14 +16,13 @@ public abstract class PEArmor extends ArmorItem {
 		super(material, armorPiece, props);
 	}
 
-	@Override
-	public int getEnchantmentValue() {
-		return 0;
-	}
-
+	/**
+	 * Our armor is not durability based (damage is absorbed through EMC), so the vanilla default implementation, which requires a {@code MAX_DAMAGE} component, would
+	 * always reject it. Instead any of our armor pieces can be enchanted, just like vanilla gear.
+	 */
 	@Override
 	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return false;
+		return ItemHelper.isEnchantableEquipment(stack);
 	}
 
 	/**

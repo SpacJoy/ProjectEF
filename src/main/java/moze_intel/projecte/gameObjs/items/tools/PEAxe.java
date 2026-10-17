@@ -4,6 +4,7 @@ import moze_intel.projecte.api.capabilities.item.IItemCharge;
 import moze_intel.projecte.gameObjs.IMatterType;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
+import moze_intel.projecte.utils.ItemHelper;
 import moze_intel.projecte.utils.ToolHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.tags.BlockTags;
@@ -34,7 +35,7 @@ public class PEAxe extends AxeItem implements IItemCharge, IBarHelper {
 
 	@Override
 	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return false;
+		return ItemHelper.isEnchantableEquipment(stack);
 	}
 
 	@Override

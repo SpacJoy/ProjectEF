@@ -4,6 +4,7 @@ import moze_intel.projecte.api.capabilities.item.IItemCharge;
 import moze_intel.projecte.gameObjs.IMatterType;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
+import moze_intel.projecte.utils.ItemHelper;
 import moze_intel.projecte.utils.ToolHelper;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.DiggerItem;
@@ -26,8 +27,13 @@ public abstract class PETool extends DiggerItem implements IItemCharge, IBarHelp
 	}
 
 	@Override
+	public boolean isEnchantable(@NotNull ItemStack stack) {
+		return ItemHelper.isEnchantableEquipment(stack);
+	}
+
+	@Override
 	public int getEnchantmentValue() {
-		return 0;
+		return matterType.getEnchantmentValue();
 	}
 
 	@Override

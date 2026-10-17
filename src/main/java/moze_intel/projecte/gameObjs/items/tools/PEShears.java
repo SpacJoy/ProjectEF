@@ -47,7 +47,13 @@ public class PEShears extends ShearsItem implements IItemCharge, IBarHelper {
 
 	@Override
 	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return false;
+		return ItemHelper.isEnchantableEquipment(stack);
+	}
+
+	@Override
+	public int getEnchantmentValue() {
+		//Shears are not tier based, so the enchantment value has to come from the matter type directly
+		return matterType.getEnchantmentValue();
 	}
 
 	@Override
