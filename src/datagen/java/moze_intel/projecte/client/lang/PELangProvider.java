@@ -534,6 +534,8 @@ public class PELangProvider extends BaseLanguageProvider {
 		add(PELang.TOOLTIP_TIME_WATCH_1, "Become the master of time");
 		add(PELang.TOOLTIP_TIME_WATCH_2, "Interact (%1$s) to change mode");
 		add(PELang.TOOLTIP_TOME, "Unlocks all transmutation knowledge when learned");
+		add(PELang.TOOLTIP_UNSELLABLE, "Not for sale!");
+		add("enchantment." + PECore.MODID + ".unsellable", "Unsellable");
 		add(PELang.TOOLTIP_VOLCANITE_1, "Press %1$s to fire a lava projectile");
 		add(PELang.TOOLTIP_VOLCANITE_2, "Acts as infinitely full lava bucket");
 		add(PELang.TOOLTIP_VOLCANITE_3, "Interact with tanks and cauldrons to fill them");

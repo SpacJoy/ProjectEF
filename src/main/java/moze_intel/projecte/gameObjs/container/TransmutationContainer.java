@@ -15,6 +15,7 @@ import moze_intel.projecte.gameObjs.items.Tome;
 import moze_intel.projecte.gameObjs.registries.PEContainerTypes;
 import moze_intel.projecte.network.packets.to_server.SearchUpdatePKT;
 import moze_intel.projecte.utils.ItemHelper;
+import moze_intel.projecte.utils.SellHelper;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -177,7 +178,9 @@ public class TransmutationContainer extends PEHandContainer {
 				}
 			}
 			//Else if we failed to do that also, transfer to the learn slot if the item has EMC
-			long emc = IEMCProxy.INSTANCE.getSellValue(stackToInsert);
+			//Note: Items carrying the unsellable enchantment are deliberately left in place instead,
+			// as that enchantment exists to keep them out of the transmutation table
+			long emc = SellHelper.isUnsellable(stackToInsert) ? 0 : IEMCProxy.INSTANCE.getSellValue(stackToInsert);
 			if (emc > 0 || stackToInsert.getItem() instanceof Tome) {
 				if (transmutationInventory.isServer()) {
 					BigInteger emcBigInt = BigInteger.valueOf(emc);

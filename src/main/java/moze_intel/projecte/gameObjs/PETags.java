@@ -10,6 +10,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
@@ -164,6 +165,22 @@ public class PETags {
 
 		private static TagKey<BlockEntityType<?>> tag(String name) {
 			return TagKey.create(Registries.BLOCK_ENTITY_TYPE, PECore.rl(name));
+		}
+	}
+
+	public static class Enchantments {
+
+		private Enchantments() {
+		}
+
+		/**
+		 * Items with an enchantment in this tag cannot be sold to the transmutation table, even though they have an EMC value. Only the enchanted stack is affected,
+		 * other stacks of the same item are still sellable.
+		 */
+		public static final TagKey<Enchantment> UNSELLABLE = tag("unsellable");
+
+		private static TagKey<Enchantment> tag(String name) {
+			return TagKey.create(Registries.ENCHANTMENT, PECore.rl(name));
 		}
 	}
 

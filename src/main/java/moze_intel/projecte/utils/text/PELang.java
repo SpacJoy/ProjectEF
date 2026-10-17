@@ -182,6 +182,7 @@ public enum PELang implements ILangEntry {
 	TOOLTIP_TIME_WATCH_1("tooltip", "time_watch.1"),
 	TOOLTIP_TIME_WATCH_2("tooltip", "time_watch.2"),
 	TOOLTIP_TOME("tooltip", "tome"),
+	TOOLTIP_UNSELLABLE("tooltip", "unsellable"),
 	TOOLTIP_VOLCANITE_1("tooltip", "volcanite.1"),
 	TOOLTIP_VOLCANITE_2("tooltip", "volcanite.2"),
 	TOOLTIP_VOLCANITE_3("tooltip", "volcanite.3"),
