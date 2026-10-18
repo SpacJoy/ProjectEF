@@ -216,6 +216,8 @@ dependencies {
     modCompileOnly("org.ladysnake.cardinal-components-api:cardinal-components-entity:${cca_version}")
     //Load Trinkets (and its jar-in-jar'd Cardinal Components) at dev runtime so the accessory integration can be exercised
     modLocalRuntime("maven.modrinth:trinkets:${trinkets_version}")
+    modLocalRuntime("org.ladysnake.cardinal-components-api:cardinal-components-base:${cca_version}")
+    modLocalRuntime("org.ladysnake.cardinal-components-api:cardinal-components-entity:${cca_version}")
 }
 
 //Set the various variables/settings for the different process resources tasks
