@@ -8,21 +8,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 public abstract class PEArmor extends ArmorItem implements IEnchantableEquipment {
 
 	protected PEArmor(Holder<ArmorMaterial> material, ArmorItem.Type armorPiece, Properties props) {
 		super(material, armorPiece, props);
-	}
-
-	/**
-	 * Our armor is not durability based (damage is absorbed through EMC), so the vanilla default implementation, which requires a {@code MAX_DAMAGE} component, would
-	 * always reject it. Instead any of our armor pieces can be enchanted, just like vanilla gear.
-	 */
-	@Override
-	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return isEnchantableEquipment(stack);
 	}
 
 	/**

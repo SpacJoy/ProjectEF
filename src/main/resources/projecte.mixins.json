@@ -12,6 +12,7 @@
     "EntityMixin",
     "FireBlockMixin",
     "ItemEntityMixin",
+    "ItemMixin",
     "ItemStackMixin",
     "LivingEntityMixin",
     "PlayerMixin",
