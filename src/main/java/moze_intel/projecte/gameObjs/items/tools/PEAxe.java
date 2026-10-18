@@ -2,6 +2,7 @@ package moze_intel.projecte.gameObjs.items.tools;
 
 import moze_intel.projecte.api.capabilities.item.IItemCharge;
 import moze_intel.projecte.gameObjs.IMatterType;
+import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.utils.ItemHelper;
@@ -19,7 +20,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
-public class PEAxe extends AxeItem implements IItemCharge, IBarHelper {
+public class PEAxe extends AxeItem implements IItemCharge, IBarHelper, IEnchantableEquipment {
 
 	private final IMatterType matterType;
 	private final int numCharges;
@@ -33,10 +34,6 @@ public class PEAxe extends AxeItem implements IItemCharge, IBarHelper {
 		this.numCharges = numCharges;
 	}
 
-	@Override
-	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return ItemHelper.isEnchantableEquipment(stack);
-	}
 
 	@Override
 	public boolean isBarVisible(@NotNull ItemStack stack) {

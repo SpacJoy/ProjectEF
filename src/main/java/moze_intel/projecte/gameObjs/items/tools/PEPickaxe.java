@@ -8,6 +8,7 @@ import java.util.function.IntFunction;
 import moze_intel.projecte.api.capabilities.item.IItemCharge;
 import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.gameObjs.IMatterType;
+import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.items.IItemMode;
 import moze_intel.projecte.gameObjs.items.IModeEnum;
@@ -40,7 +41,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBlockTags;
 import org.jetbrains.annotations.NotNull;
 
-public class PEPickaxe extends PickaxeItem implements IItemCharge, IItemMode<PickaxeMode>, IBarHelper {
+public class PEPickaxe extends PickaxeItem implements IItemCharge, IItemMode<PickaxeMode>, IBarHelper, IEnchantableEquipment {
 
 	private final IMatterType matterType;
 	private final int numCharges;
@@ -54,10 +55,6 @@ public class PEPickaxe extends PickaxeItem implements IItemCharge, IItemMode<Pic
 		this.numCharges = numCharges;
 	}
 
-	@Override
-	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return ItemHelper.isEnchantableEquipment(stack);
-	}
 
 	@Override
 	public boolean isBarVisible(@NotNull ItemStack stack) {

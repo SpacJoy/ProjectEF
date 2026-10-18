@@ -1,8 +1,7 @@
 {
-  "remove": [
+  "values": [
     "projecte:dm_helmet",
     "projecte:rm_helmet",
     "projecte:gem_helmet"
-  ],
-  "values": []
+  ]
 }

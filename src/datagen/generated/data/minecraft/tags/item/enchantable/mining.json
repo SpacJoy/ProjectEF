@@ -1,5 +1,5 @@
 {
-  "remove": [
+  "values": [
     "projecte:dm_axe",
     "projecte:rm_axe",
     "projecte:dm_pick",
@@ -11,7 +11,8 @@
     "projecte:dm_hammer",
     "projecte:rm_hammer",
     "projecte:rm_katar",
-    "projecte:rm_morning_star"
-  ],
-  "values": []
+    "projecte:rm_morning_star",
+    "projecte:dm_shears",
+    "projecte:rm_shears"
+  ]
 }

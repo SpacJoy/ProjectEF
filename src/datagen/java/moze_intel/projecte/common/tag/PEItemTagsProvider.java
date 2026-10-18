@@ -175,38 +175,50 @@ public class PEItemTagsProvider extends ItemTagsProvider {
 				PETags.Items.TOOLS_KATARS,
 				PETags.Items.TOOLS_MORNING_STARS
 		);
+		//Note: Our gear is enchantable just like vanilla gear, so it is also added to the enchantment based tags that match what the item is used for.
+		// The tags are what decide which enchantments may be applied, and each composite tool below is tagged after the tools it is crafted from.
+		// Durability is deliberately left out: our gear never loses durability, so unbreaking/mending are kept off it (see EnchantmentMixin).
 		addTool(ItemTags.SWORDS, new ItemLike[]{
 				PEItems.DARK_MATTER_SWORD,
 				PEItems.RED_MATTER_SWORD
-		}, ItemTags.SWORD_ENCHANTABLE, ItemTags.SHARP_WEAPON_ENCHANTABLE, ItemTags.DURABILITY_ENCHANTABLE);
+		}, ItemTags.SWORD_ENCHANTABLE, ItemTags.SHARP_WEAPON_ENCHANTABLE);
 		addTool(ItemTags.AXES, new ItemLike[]{
 				PEItems.DARK_MATTER_AXE,
 				PEItems.RED_MATTER_AXE
-		}, ItemTags.SHARP_WEAPON_ENCHANTABLE, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE, ItemTags.DURABILITY_ENCHANTABLE);
+		}, ItemTags.SHARP_WEAPON_ENCHANTABLE, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE);
 		addTool(ItemTags.PICKAXES, new ItemLike[]{
 				PEItems.DARK_MATTER_PICKAXE,
 				PEItems.RED_MATTER_PICKAXE
-		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE, ItemTags.DURABILITY_ENCHANTABLE);
+		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE);
 		addTool(ItemTags.SHOVELS, new ItemLike[]{
 				PEItems.DARK_MATTER_SHOVEL,
 				PEItems.RED_MATTER_SHOVEL
-		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE, ItemTags.DURABILITY_ENCHANTABLE);
+		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE);
 		addTool(ItemTags.HOES, new ItemLike[]{
 				PEItems.DARK_MATTER_HOE,
 				PEItems.RED_MATTER_HOE
-		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE, ItemTags.DURABILITY_ENCHANTABLE);
+		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE);
 
-		//Note: For our tool types these aren't added to any of the enchantable tags, but we remove them just in case someone else adds the base tags to an enchantable one
+		//The hammer is a mining tool: it is crafted from a dark matter block and a diamond, and it digs out a 3x3 area.
 		addTool(PETags.Items.TOOLS_HAMMERS, new ItemLike[]{
 				PEItems.DARK_MATTER_HAMMER,
 				PEItems.RED_MATTER_HAMMER
-		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE, ItemTags.DURABILITY_ENCHANTABLE);
+		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE);
+		//The katar is crafted from a red matter sword, axe, shears and hoe, and it also works as a sword (it is in the c:tools/katars and c:tools/shear tags).
 		addTool(PETags.Items.TOOLS_KATARS, new ItemLike[]{
 				PEItems.RED_MATTER_KATAR
-		}, ItemTags.SWORD_ENCHANTABLE, ItemTags.SHARP_WEAPON_ENCHANTABLE, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE, ItemTags.DURABILITY_ENCHANTABLE);
+		}, ItemTags.SWORD_ENCHANTABLE, ItemTags.SHARP_WEAPON_ENCHANTABLE, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE);
+		//The morning star is crafted from a red matter hammer, pickaxe and shovel, so it gets the mining enchantments of those.
 		addTool(PETags.Items.TOOLS_MORNING_STARS, new ItemLike[]{
 				PEItems.RED_MATTER_MORNING_STAR
-		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE, ItemTags.DURABILITY_ENCHANTABLE);
+		}, ItemTags.MINING_ENCHANTABLE, ItemTags.MINING_LOOT_ENCHANTABLE);
+
+		//Our shears have no vanilla equipment tag of their own, so they are added to the mining enchantments directly. They are kept out of mining_loot on
+		// purpose: silk touch and fortune on shears would change what leaves and wool drop, which is not what a pair of shears is for.
+		tag(ItemTags.MINING_ENCHANTABLE).add(
+				PEItems.DARK_MATTER_SHEARS.get(),
+				PEItems.RED_MATTER_SHEARS.get()
+		);
 
 		tag(Tags.Items.MELEE_WEAPON_TOOLS).addTag(PETags.Items.TOOLS_KATARS);
 		tag(Tags.Items.MINING_TOOL_TOOLS).addTags(
@@ -249,9 +261,9 @@ public class PEItemTagsProvider extends ItemTagsProvider {
 		for (ItemLike itemLike : items) {
 			Item item = itemLike.asItem();
 			toolBuilder.add(item);
-			//Remove them from enchantment based tags
+			//Add them to the enchantment based tags that match what the tool is used for
 			for (TagKey<Item> enchantableTag : enchantableTags) {
-				tag(enchantableTag).remove(item);
+				tag(enchantableTag).add(item);
 			}
 		}
 	}
@@ -259,15 +271,13 @@ public class PEItemTagsProvider extends ItemTagsProvider {
 	private void addArmor(TagKey<Item> armorTag, TagKey<Item> armorTagEnchantable, ItemLike... items) {
 		IntrinsicTagAppender<Item> armorBuilder = tag(armorTag);
 		IntrinsicTagAppender<Item> enchantableBuilder = tag(armorTagEnchantable);
-		IntrinsicTagAppender<Item> durabilityEnchantable = tag(ItemTags.DURABILITY_ENCHANTABLE);
 		IntrinsicTagAppender<Item> equippableEnchantable = tag(ItemTags.EQUIPPABLE_ENCHANTABLE);
 		for (ItemLike itemLike : items) {
 			Item item = itemLike.asItem();
 			armorBuilder.add(item);
-			//Remove them from enchantment based tags
-			enchantableBuilder.remove(item);
-			durabilityEnchantable.remove(item);
-			equippableEnchantable.remove(item);
+			//Add them to the enchantment based tags that match the armor slot, so that they can be enchanted like vanilla armor
+			enchantableBuilder.add(item);
+			equippableEnchantable.add(item);
 		}
 	}
 

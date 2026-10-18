@@ -1,6 +1,6 @@
 package moze_intel.projecte.gameObjs.items.armor;
 
-import moze_intel.projecte.utils.ItemHelper;
+import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import net.minecraft.core.Holder;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -10,7 +10,7 @@ import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class PEArmor extends ArmorItem {
+public abstract class PEArmor extends ArmorItem implements IEnchantableEquipment {
 
 	protected PEArmor(Holder<ArmorMaterial> material, ArmorItem.Type armorPiece, Properties props) {
 		super(material, armorPiece, props);
@@ -22,7 +22,7 @@ public abstract class PEArmor extends ArmorItem {
 	 */
 	@Override
 	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return ItemHelper.isEnchantableEquipment(stack);
+		return isEnchantableEquipment(stack);
 	}
 
 	/**

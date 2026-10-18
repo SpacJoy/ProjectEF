@@ -3,6 +3,7 @@ package moze_intel.projecte.gameObjs.items.tools;
 import moze_intel.projecte.api.capabilities.item.IExtraFunction;
 import moze_intel.projecte.api.capabilities.item.IItemCharge;
 import moze_intel.projecte.gameObjs.IMatterType;
+import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.items.IHasConditionalAttributes;
 import moze_intel.projecte.gameObjs.items.IHasConditionalAttributes.AttributeCollector;
@@ -21,7 +22,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 
-public class PESword extends SwordItem implements IExtraFunction, IItemCharge, IBarHelper, IHasConditionalAttributes {
+public class PESword extends SwordItem implements IExtraFunction, IItemCharge, IBarHelper, IHasConditionalAttributes, IEnchantableEquipment {
 
 	private final IMatterType matterType;
 	private final int numCharges;
@@ -35,10 +36,6 @@ public class PESword extends SwordItem implements IExtraFunction, IItemCharge, I
 		this.numCharges = numCharges;
 	}
 
-	@Override
-	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return ItemHelper.isEnchantableEquipment(stack);
-	}
 
 	@Override
 	public boolean isBarVisible(@NotNull ItemStack stack) {

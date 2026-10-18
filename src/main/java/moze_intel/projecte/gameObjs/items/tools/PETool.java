@@ -2,6 +2,7 @@ package moze_intel.projecte.gameObjs.items.tools;
 
 import moze_intel.projecte.api.capabilities.item.IItemCharge;
 import moze_intel.projecte.gameObjs.IMatterType;
+import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.utils.ItemHelper;
@@ -13,7 +14,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class PETool extends DiggerItem implements IItemCharge, IBarHelper {
+public abstract class PETool extends DiggerItem implements IItemCharge, IBarHelper, IEnchantableEquipment {
 
 	protected final IMatterType matterType;
 	private final int numCharges;
@@ -26,10 +27,6 @@ public abstract class PETool extends DiggerItem implements IItemCharge, IBarHelp
 		this.numCharges = numCharges;
 	}
 
-	@Override
-	public boolean isEnchantable(@NotNull ItemStack stack) {
-		return ItemHelper.isEnchantableEquipment(stack);
-	}
 
 	@Override
 	public int getEnchantmentValue() {
