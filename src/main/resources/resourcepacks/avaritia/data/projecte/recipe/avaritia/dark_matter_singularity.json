@@ -5,8 +5,6 @@
   },
   "cost": 200,
   "ingredients": [
-    {
-      "item": "projecte:dark_matter_block"
-    }
+    "projecte:dark_matter_block"
   ]
 }

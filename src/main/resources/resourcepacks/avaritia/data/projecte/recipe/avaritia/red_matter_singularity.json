@@ -5,8 +5,6 @@
   },
   "cost": 200,
   "ingredients": [
-    {
-      "item": "projecte:red_matter_block"
-    }
+    "projecte:red_matter_block"
   ]
 }

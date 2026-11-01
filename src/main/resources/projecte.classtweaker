@@ -1,6 +1,10 @@
-accessWidener v2 named
+classTweaker v1 official
 
-# Converted from META-INF/accesstransformer.cfg (NeoForge AT). Field descriptors verified against the 1.21.1 Mojmap jar.
+# Converted from META-INF/accesstransformer.cfg (NeoForge AT). Field descriptors verified against the 1.21.1 Mojmap jar,
+# then re-validated against the 26.3 (unobfuscated, official names) jar during the 26.3 port.
+#
+# 26.3 removed several members these rules widened (validated with :validateAccessWidener); the source that used them
+# was rewritten against the replacement APIs and the dead rules were dropped. See the "Removed in 26.3" notes below.
 
 accessible field net/minecraft/resources/RegistryOps lookupProvider Lnet/minecraft/resources/RegistryOps$RegistryInfoLookup;
 
@@ -13,23 +17,25 @@ accessible method net/minecraft/world/item/StandingAndWallBlockItem getPlacement
 
 accessible field net/minecraft/world/item/context/BlockPlaceContext replaceClicked Z
 
-accessible field net/minecraft/world/item/crafting/FireworkRocketRecipe GUNPOWDER_INGREDIENT Lnet/minecraft/world/item/crafting/Ingredient;
-accessible field net/minecraft/world/item/crafting/FireworkStarRecipe SHAPE_BY_ITEM Ljava/util/Map;
-accessible field net/minecraft/world/item/crafting/FireworkStarRecipe TRAIL_INGREDIENT Lnet/minecraft/world/item/crafting/Ingredient;
-accessible field net/minecraft/world/item/crafting/FireworkStarRecipe TWINKLE_INGREDIENT Lnet/minecraft/world/item/crafting/Ingredient;
+# Removed in 26.3: FireworkRocketRecipe#GUNPOWDER_INGREDIENT, FireworkStarRecipe#SHAPE_BY_ITEM/TRAIL_INGREDIENT/
+# TWINKLE_INGREDIENT. The recipes became data driven: both now keep plain Ingredient fields (shell/fuel/star and
+# shapes/trail/twinkle/fuel/dye) behind MAP_CODEC/STREAM_CODEC, so the custom EMC readouts go through the recipe
+# registry instead of the (now gone) static maps. Those fields are private, so the ones still read are widened here.
+accessible field net/minecraft/world/item/crafting/FireworkStarRecipe shapes Ljava/util/Map;
+accessible field net/minecraft/world/item/crafting/FireworkStarRecipe trail Lnet/minecraft/world/item/crafting/Ingredient;
+accessible field net/minecraft/world/item/crafting/FireworkStarRecipe twinkle Lnet/minecraft/world/item/crafting/Ingredient;
+accessible field net/minecraft/world/item/crafting/FireworkRocketRecipe fuel Lnet/minecraft/world/item/crafting/Ingredient;
 
+# SmithingTransformRecipe keeps 'base' non-optional; template/addition became Optional<Ingredient>, so only the
+# still-present field stays widened (the Optional ones are read through templateIngredient()/additionIngredient()).
 accessible field net/minecraft/world/item/crafting/SmithingTransformRecipe base Lnet/minecraft/world/item/crafting/Ingredient;
-accessible field net/minecraft/world/item/crafting/SmithingTransformRecipe addition Lnet/minecraft/world/item/crafting/Ingredient;
-accessible field net/minecraft/world/item/crafting/SmithingTransformRecipe template Lnet/minecraft/world/item/crafting/Ingredient;
 accessible field net/minecraft/world/item/crafting/SmithingTrimRecipe base Lnet/minecraft/world/item/crafting/Ingredient;
 accessible field net/minecraft/world/item/crafting/SmithingTrimRecipe addition Lnet/minecraft/world/item/crafting/Ingredient;
 accessible field net/minecraft/world/item/crafting/SmithingTrimRecipe template Lnet/minecraft/world/item/crafting/Ingredient;
 
-accessible field net/minecraft/world/item/alchemy/PotionBrewing potionMixes Ljava/util/List;
-accessible field net/minecraft/world/item/alchemy/PotionBrewing containerMixes Ljava/util/List;
-accessible field net/minecraft/world/item/alchemy/PotionBrewing containers Ljava/util/List;
-accessible class net/minecraft/world/item/alchemy/PotionBrewing$Mix
-accessible method net/minecraft/world/item/alchemy/PotionBrewing$Mix <init> (Lnet/minecraft/core/Holder;Lnet/minecraft/world/item/crafting/Ingredient;Lnet/minecraft/core/Holder;)V
+# Removed in 26.3: PotionBrewing (the whole class is gone) together with its potionMixes/containerMixes/containers
+# lists and the PotionBrewing$Mix record. Brewing is data driven through the recipe registry now, so BrewingMapper
+# reads registered brewing recipes instead of reflecting into those lists.
 
 accessible method net/minecraft/world/level/block/LeavesBlock decaying (Lnet/minecraft/world/level/block/state/BlockState;)Z
 
@@ -50,19 +56,23 @@ accessible field net/minecraft/world/level/chunk/LevelChunk$BoundTickingBlockEnt
 accessible class net/minecraft/world/level/chunk/LevelChunk$RebindableTickingBlockEntityWrapper
 accessible field net/minecraft/world/level/chunk/LevelChunk$RebindableTickingBlockEntityWrapper ticker Lnet/minecraft/world/level/block/entity/TickingBlockEntity;
 
-# Vanilla tool conversion maps, used by ToolHelper for the AOE tool actions (the fabric content registries write modded entries into these same maps)
-accessible field net/minecraft/world/item/AxeItem STRIPPABLES Ljava/util/Map;
-accessible field net/minecraft/world/item/ShovelItem FLATTENABLES Ljava/util/Map;
+# Removed in 26.3: AxeItem#STRIPPABLES and ShovelItem#FLATTENABLES (both whole classes are gone). Tool conversion is
+# data driven now through DataComponents#BLOCK_TRANSFORMER (a Holder<BlockTransformer>), which ToolHelper reads and
+# which modded content extends by registering its own transformer entries.
 
 accessible field net/minecraft/world/level/block/LiquidBlock fluid Lnet/minecraft/world/level/material/FlowingFluid;
 
 accessible field net/minecraft/world/item/ItemStackLinkedSet TYPE_AND_TAG Lit/unimi/dsi/fastutil/Hash$Strategy;
 
-accessible method net/minecraft/world/level/block/state/BlockBehaviour propertiesCodec ()Lcom/mojang/serialization/codecs/RecordCodecBuilder;
+# Removed in 26.3: BlockBehaviour#propertiesCodec(), together with the block_type registry and every Block#codec.
+# PEBlockTypes (which only existed to forward the ProjectE block properties codec) was deleted along with the
+# registration call in PECore.
 
-# Philosopher's Stone: allow self-referencing as its own craftingRemainingItem (field is private final in Item)
-accessible field net/minecraft/world/item/Item craftingRemainingItem Lnet/minecraft/world/item/Item;
-mutable field net/minecraft/world/item/Item craftingRemainingItem Lnet/minecraft/world/item/Item;
+# Philosopher's Stone: allow self-referencing as its own craftingRemainingItem. The field is private final and its
+# type changed from Item to ItemStackTemplate in 26.3 (stacks can no longer be built without a level, so recipes
+# carry templates instead).
+accessible field net/minecraft/world/item/Item craftingRemainingItem Lnet/minecraft/world/item/ItemStackTemplate;
+mutable field net/minecraft/world/item/Item craftingRemainingItem Lnet/minecraft/world/item/ItemStackTemplate;
 
 # Nova Catalyst / Nova Cataclysm: EntityNovaPrimed overrides explode() to run the custom Nova
 # explosion instead of the vanilla 4.0F one (NeoForge patches this method to protected).

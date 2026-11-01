@@ -18,7 +18,7 @@
     "homepage": "https://github.com/wchiway/ProjectEF",
     "issues": "https://github.com/wchiway/ProjectEF/issues",
     "sources": "https://github.com/wchiway/ProjectEF",
-    "updateJsonURL": "https://raw.githubusercontent.com/wchiway/ProjectEF/mc1.21.1/update.json"
+    "updateJsonURL": "https://raw.githubusercontent.com/wchiway/ProjectEF/26.3/update.json"
   },
   "license": "MIT",
   "icon": "assets/projecte/icon.png",
@@ -37,15 +37,15 @@
       "moze_intel.projecte.integration.recipe_viewer.rei.PEReiPlugin"
     ]
   },
-  "accessWidener": "projecte.accesswidener",
+  "accessWidener": "projecte.classtweaker",
   "mixins": [
     "projecte.mixins.json"
   ],
   "depends": {
     "fabricloader": "${loader_version_range}",
-    "fabric-api": "*",
-    "minecraft": "${minecraft_version}",
-    "java": ">=21",
+    "fabric-api": ">=0.165.0",
+    "minecraft": "~26.3",
+    "java": ">=25",
     "forgeconfigapiport": "${fcap_version_range}"
   },
   "breaks": {
