@@ -5,7 +5,8 @@
 <p align="center">
   <b>Equivalent Exchange: Reborn for Fabric</b><br>
   中文名：[Fabric]等价交换 Neo<br>
-  Minecraft 1.21.1 · Fabric
+  Minecraft 1.21.1 · Fabric<br>
+  本分支为 <b>Minecraft 26.3</b> 移植版
 </p>
 <p align="center">
 <!-- <a href="https://modrinth.com/mod/projectef">
@@ -26,6 +27,65 @@
 ## Quick Links
 
 [Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/projectef) · [GitHub Releases](https://github.com/wchiway/ProjectEF/releases) · [Installation](#installation) · [Report an Issue](https://github.com/wchiway/ProjectEF/issues) · [Developer Guide](DEV.md)
+
+> **本分支说明（Minecraft 26.3）**
+>
+> 当前分支是 **Minecraft 26.3** 的移植版，由 [SpacJoy](https://github.com/SpacJoy/ProjectEF) 在 [wchiway/ProjectEF](https://github.com/wchiway/ProjectEF) 基础上移植而来。
+> 1.21.1 主线的玩法与用法仍然适用，差异只在下面列出的部分。
+
+## 本分支相对上游的改动
+
+### 一、移植到 Minecraft 26.3
+
+26.3 改动了很多底层约定，以下位置与 1.21.1 分支不同：
+
+| 项目 | 1.21.1 | 26.3 |
+| --- | --- | --- |
+| 物品模型入口 | `assets/<ns>/models/item/*.json` + `overrides` | `assets/<ns>/items/*.json`（`overrides` 已移除，改用 `select` / `condition` / `range_dispatch`） |
+| 盔甲外观 | `textures/models/armor/*_layer_1/2.png` | `assets/<ns>/equipment/<name>.json` + `textures/entity/equipment/<layerType>/<name>.png` |
+| 饰品槽图标 | 放在任意图集位置 | 必须在 `textures/gui/sprites/`（`blitSprite` 只查 GUI 图集） |
+| GUI 分层 | 按绘制调用顺序 | `GuiRenderState` 按包围盒分层，需要置顶时调 `nextStratum()` |
+| 数据组件读取 | `Registry#getOrThrow` | `Registry#getValueOrThrow`（`getOrThrow` 返回的是 Holder） |
+| 方块物品翻译键 | 默认 `block.<ns>.<path>` | 默认 `item.<ns>.<path>`，需调 `useBlockDescriptionPrefix()` 切回 |
+| access widener | `*.accesswidener` | `*.classtweaker` |
+| 构建 | Loom 1.10.x / Gradle 8.12.1 / JDK 21 | Loom 1.18.2（`net.fabricmc.fabric-loom`）/ Gradle 9.8.0 / JDK 25 |
+| 映射 | Mojang official + Parchment | 26.1 起不再混淆，无需映射 |
+
+配方与整个世界转化表的数据格式也变了，JSON 里引用物品要写字符串而不是 `{"item": "..."}` 对象。
+
+### 二、本分支额外新增的内容
+
+这些是 1.21.1 分支没有、只在本分支有的功能：
+
+**1. 「非卖品」附魔**
+
+新增附魔 `projecte:unsellable`（中文名「非卖品」），带这个附魔的物品无法出售到转换桌，也就在转换桌里换不成 EMC。适合给不想误卖的贵重物品挂上。
+
+实现位置：`data/projecte/enchantment/unsellable.json` 定义附魔，`utils/impl/SellProxyImpl.java` 做判断，`TransmutationContainer` / `SlotConsume` / `ToolTipEvent` 三处接入。
+
+**2. 公开的 `ISellProxy` API**
+
+新增 `moze_intel.projecte.api.proxy.ISellProxy`，其他模组可以通过它查询「某个物品是否可出售」，方便自己在界面里做同样的灰显或提示。
+
+**3. 装备可附魔**
+
+暗物质、红物质、宝石三套装备原本被强制设为不可附魔，本分支解除了这个限制：
+- 移除 `PEArmor` / `PETool` 上的附魔屏蔽
+- 重写 `enchantable/*` 物品标签，让护甲走护甲附魔池、锤 / 拳剑 / 钉头锤走武器附魔池
+- 通过 `mixin/ItemMixin.java` 恢复装备在附魔台的附魔能力
+- 同时屏蔽耐久类附魔（耐久、经验修补这类对无限耐久的暗物质装备无意义）
+
+**4. 其他修复**
+
+- EMC 单位按游戏语言显示（中文为「兆」「京」「垓」等中文数量级，不是 Quintillion 这类英文后缀）
+- EMC 每秒速率显示修正（之前是实际值的两倍）
+- EMC 文字在深色 GUI 背景下可读性修正
+- 奥术转换桌的数量文字不再被物品图标盖住
+
+### 三、暂未移植的部分
+
+- **EMI 集成**：EMI 没有 26.3 版本，源码保留在树里但排除在编译外。JEI 和 REI 正常。
+- **其他可选兼容**：Avaritia、AMEcs 等依赖没有 26.3 版本，运行时会静默跳过。
 
 ## Overview
 
@@ -81,18 +141,22 @@ Accessory slots are provided through [Trinkets](https://modrinth.com/mod/trinket
 
 ### Requirements
 
-* Minecraft 1.21.1
-* Fabric Loader 0.16.9 or newer
-* Fabric API (1.21.1 compatible version)
-* Java 21
+当前分支（26.3）：
+
+* Minecraft 26.3
+* Fabric Loader 0.19.5 or newer
+* Fabric API 0.165.0+26.3
+* Java 25
+
+（1.21.1 主线分支的要求是 Minecraft 1.21.1、Fabric Loader 0.16.9+、Java 21。）
 
 > Forge Config API Port and fabric-permissions-api are bundled inside the ProjectEF Neo JAR (jar-in-jar). **No extra downloads needed.**
 
 ### Steps
 
-1. Install Minecraft 1.21.1 with Fabric Loader.
+1. Install Minecraft 26.3 with Fabric Loader.
 2. Install a compatible Fabric API version.
-3. Download ProjectEF Neo from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/projectef) or [GitHub Releases](https://github.com/wchiway/ProjectEF/releases).
+3. Download ProjectEF Neo from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/projectef) or [GitHub Releases](https://github.com/SpacJoy/ProjectEF/releases).
 4. Place the JAR file into your Minecraft `mods` folder.
 
 ### Optional Integrations
