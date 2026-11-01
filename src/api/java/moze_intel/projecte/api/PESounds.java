@@ -4,7 +4,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 
 public final class PESounds {
@@ -22,7 +22,7 @@ public final class PESounds {
 	}
 
 	private static Holder<SoundEvent> get(String name) {
-		return BuiltInRegistries.SOUND_EVENT.getHolderOrThrow(
-				ResourceKey.create(Registries.SOUND_EVENT, ResourceLocation.fromNamespaceAndPath(ProjectEAPI.PROJECTE_MODID, name)));
+		// 26.3: Registry#getHolderOrThrow is gone; look the holder up by id instead.
+		return BuiltInRegistries.SOUND_EVENT.get(Identifier.fromNamespaceAndPath(ProjectEAPI.PROJECTE_MODID, name)).orElseThrow();
 	}
 }

@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.fabricmc.fabric.api.transfer.v1.storage.StorageView;
 import net.fabricmc.fabric.api.transfer.v1.storage.base.SingleSlotStorage;
 import net.fabricmc.fabric.api.transfer.v1.transaction.Transaction;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,12 +45,12 @@ public class StorageItemHandler implements IItemHandler {
 			if (view.isResourceBlank()) {
 				return ItemStack.EMPTY;
 			}
-			return view.getResource().toStack((int) Math.min(view.getAmount(), Item.ABSOLUTE_MAX_STACK_SIZE));
+			return view.getResource().toStack((int) Math.min(view.getAmount(), Integer.MAX_VALUE));
 		}
 		//Non slotted storages don't have stable slot contents, expose the first non empty view for slot zero
 		if (slot == 0) {
 			for (StorageView<ItemVariant> view : storage.nonEmptyViews()) {
-				return view.getResource().toStack((int) Math.min(view.getAmount(), Item.ABSOLUTE_MAX_STACK_SIZE));
+				return view.getResource().toStack((int) Math.min(view.getAmount(), Integer.MAX_VALUE));
 			}
 		}
 		return ItemStack.EMPTY;
@@ -125,10 +124,12 @@ public class StorageItemHandler implements IItemHandler {
 
 	@Override
 	public int getSlotLimit(int slot) {
+		//See ItemStackHandler#getSlotLimit: 99 is vanilla's marker for "no per slot cap", not a real ceiling, and a
+		// stacking mod that raises MAX_STACK_SIZE past 99 would otherwise be clamped right back down here.
 		if (storage instanceof SlottedStorage<ItemVariant> slotted && slot >= 0 && slot < slotted.getSlotCount()) {
-			return (int) Math.min(slotted.getSlot(slot).getCapacity(), Item.ABSOLUTE_MAX_STACK_SIZE);
+			return (int) Math.min(slotted.getSlot(slot).getCapacity(), Integer.MAX_VALUE);
 		}
-		return Item.ABSOLUTE_MAX_STACK_SIZE;
+		return Integer.MAX_VALUE;
 	}
 
 	@Override

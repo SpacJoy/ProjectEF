@@ -4,11 +4,11 @@ import moze_intel.projecte.api.capabilities.block_entity.IEmcStorage;
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -162,8 +162,8 @@ public class BaseEmcBlockEntity extends BlockEntity implements IEmcStorage {
 	}
 
 	@Override
-	protected void saveAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.saveAdditional(tag, registries);
+	protected void saveAdditional(@NotNull ValueOutput tag) {
+		super.saveAdditional(tag);
 		if (getStoredEmc() > getMaximumEmc()) {
 			currentEMC = getMaximumEmc();
 		}
@@ -171,8 +171,8 @@ public class BaseEmcBlockEntity extends BlockEntity implements IEmcStorage {
 	}
 
 	@Override
-	public void loadAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.loadAdditional(tag, registries);
-		currentEMC = Math.min(tag.getLong("emc"), getMaximumEmc());
+	public void loadAdditional(@NotNull ValueInput tag) {
+		super.loadAdditional(tag);
+		currentEMC = Math.min(tag.getLongOr("emc", 0L), getMaximumEmc());
 	}
 }

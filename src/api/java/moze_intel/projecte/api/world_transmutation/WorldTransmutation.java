@@ -29,14 +29,14 @@ public record WorldTransmutation(@NotNull BlockState originState, @NotNull Block
 	private static final Codec<BlockState> STATE_CODEC = Codec.either(BuiltInRegistries.BLOCK.byNameCodec().flatXmap(
 			block -> DataResult.success(block.defaultBlockState()),
 			state -> {
-				if (state.getValues().isEmpty()) {
+				if (state.getValues().findAny().isEmpty()) {
 					return DataResult.success(state.getBlock());
 				}
 				return DataResult.error(() -> "Flattened state codec cannot be used for blocks that define any properties.");
 			}
 	), BlockState.CODEC).xmap(
 			either -> either.map(l -> l, r -> r),
-			state -> state.getValues().isEmpty() ? Either.left(state) : Either.right(state)
+			state -> state.getValues().findAny().isEmpty() ? Either.left(state) : Either.right(state)
 	);
 	private static final StreamCodec<ByteBuf, BlockState> STATE_STREAM_CODEC = ByteBufCodecs.idMapper(Block.BLOCK_STATE_REGISTRY);
 
@@ -97,8 +97,8 @@ public record WorldTransmutation(@NotNull BlockState originState, @NotNull Block
 	 */
 	@NotNull
 	public static IWorldTransmutation of(@NotNull BlockState origin, @NotNull BlockState result) {
-		if (origin.getValues().isEmpty() && result.getValues().isEmpty()) {
-			return new SimpleWorldTransmutation(origin.getBlockHolder(), result.getBlockHolder());
+		if (origin.getValues().findAny().isEmpty() && result.getValues().findAny().isEmpty()) {
+			return new SimpleWorldTransmutation(origin.typeHolder(), result.typeHolder());
 		}
 		return new WorldTransmutation(origin, result);
 	}
@@ -112,15 +112,15 @@ public record WorldTransmutation(@NotNull BlockState originState, @NotNull Block
 	 */
 	@NotNull
 	public static IWorldTransmutation of(@NotNull BlockState origin, @NotNull BlockState result, @NotNull BlockState altResult) {
-		if (origin.getValues().isEmpty() && result.getValues().isEmpty() && altResult.getValues().isEmpty()) {
-			return new SimpleWorldTransmutation(origin.getBlockHolder(), result.getBlockHolder(), altResult.getBlockHolder());
+		if (origin.getValues().findAny().isEmpty() && result.getValues().findAny().isEmpty() && altResult.getValues().findAny().isEmpty()) {
+			return new SimpleWorldTransmutation(origin.typeHolder(), result.typeHolder(), altResult.typeHolder());
 		}
 		return new WorldTransmutation(origin, result, altResult);
 	}
 
 	@Override
 	public Holder<Block> origin() {
-		return originState.getBlockHolder();
+		return originState.typeHolder();
 	}
 
 	@Override

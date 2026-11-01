@@ -1,7 +1,7 @@
 package moze_intel.projecte.api.capabilities;
 
 import net.fabricmc.fabric.api.lookup.v1.item.ItemApiLookup;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +22,7 @@ public final class PEItemCapability<A> {
 	/**
 	 * Creates a new context-less item capability.
 	 */
-	public static <A> PEItemCapability<A> create(ResourceLocation id, Class<A> apiClass) {
+	public static <A> PEItemCapability<A> create(Identifier id, Class<A> apiClass) {
 		return new PEItemCapability<>(ItemApiLookup.get(id, apiClass, Void.class));
 	}
 

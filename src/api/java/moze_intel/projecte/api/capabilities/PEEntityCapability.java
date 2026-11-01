@@ -2,7 +2,7 @@ package moze_intel.projecte.api.capabilities;
 
 import java.util.function.BiFunction;
 import net.fabricmc.fabric.api.lookup.v1.entity.EntityApiLookup;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
@@ -23,7 +23,7 @@ public final class PEEntityCapability<A> {
 	/**
 	 * Creates a new context-less entity capability.
 	 */
-	public static <A> PEEntityCapability<A> create(ResourceLocation id, Class<A> apiClass) {
+	public static <A> PEEntityCapability<A> create(Identifier id, Class<A> apiClass) {
 		return new PEEntityCapability<>(EntityApiLookup.get(id, apiClass, Void.class));
 	}
 

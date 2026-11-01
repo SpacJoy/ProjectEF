@@ -2,7 +2,7 @@ package moze_intel.projecte.api.capabilities;
 
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -26,7 +26,7 @@ public final class PEBlockCapability<A, C> {
 	/**
 	 * Creates a new block capability with the given context class.
 	 */
-	public static <A, C> PEBlockCapability<A, C> create(ResourceLocation id, Class<A> apiClass, Class<C> contextClass) {
+	public static <A, C> PEBlockCapability<A, C> create(Identifier id, Class<A> apiClass, Class<C> contextClass) {
 		return new PEBlockCapability<>(BlockApiLookup.get(id, apiClass, contextClass));
 	}
 

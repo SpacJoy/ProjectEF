@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Optional;
 import moze_intel.projecte.api.nss.NSSItem;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -118,7 +119,7 @@ public final class ItemInfo {
 	 * @apiNote While it is not required that the stack is not empty, it is expected to check yourself to make sure it is not empty.
 	 */
 	public static ItemInfo fromStack(@NotNull ItemStack stack) {
-		return new ItemInfo(stack.getItemHolder(), stack.getComponentsPatch());
+		return new ItemInfo(stack.typeHolder(), stack.getComponentsPatch());
 	}
 
 	/**
@@ -131,7 +132,7 @@ public final class ItemInfo {
 		if (stack.representsTag()) {
 			return null;
 		}
-		Optional<Holder.Reference<Item>> holder = BuiltInRegistries.ITEM.getHolder(stack.getResourceLocation());
+		Optional<Holder.Reference<Item>> holder = BuiltInRegistries.ITEM.get(stack.getIdentifier());
 		//noinspection OptionalIsPresent - Capturing lambda
 		if (holder.isEmpty()) {
 			return null;
@@ -175,13 +176,10 @@ public final class ItemInfo {
 	 * @apiNote This might return null if the item has the component as a default component and the component is at that default value.
 	 */
 	@Nullable
-	@SuppressWarnings("OptionalAssignedToNull")
 	public <T> T getOrNull(DataComponentType<? extends T> type) {
-		Optional<? extends T> storedComponent = componentsPatch.get(type);
-		if (storedComponent == null || storedComponent.isEmpty()) {
-			return null;
-		}
-		return storedComponent.get();
+		// 26.3: DataComponentPatch no longer exposes a bare "what did the patch add" lookup; it resolves
+		// against a base DataComponentGetter. An EMPTY base reproduces the previous semantics exactly.
+		return componentsPatch.get(DataComponentMap.EMPTY, type);
 	}
 
 	/**

@@ -1,12 +1,18 @@
 package moze_intel.projecte.api.item_handlers;
 
+import java.util.Optional;
+
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.world.item.Item;
+import net.minecraft.resources.RegistryOps;
+import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -118,7 +124,11 @@ public class ItemStackHandler implements IItemHandlerModifiable {
 
 	@Override
 	public int getSlotLimit(int slot) {
-		return Item.ABSOLUTE_MAX_STACK_SIZE;
+		//This is a per slot cap, and insertItem takes the minimum of it and the stack's own limit. Vanilla Container
+		// reports 99 here as its "no per slot cap" marker, but 99 is a real number to Math.min, so a stack raised past
+		// 99 by a stacking mod (Stackable and friends rewrite the MAX_STACK_SIZE component) would be silently capped
+		// back down. Reporting the unbounded value leaves the item's own limit in charge.
+		return Integer.MAX_VALUE;
 	}
 
 	@Override
@@ -137,14 +147,32 @@ public class ItemStackHandler implements IItemHandlerModifiable {
 		onContentsChanged(slot);
 	}
 
+	// 26.3: block entities persist through ValueOutput/ValueInput instead of raw CompoundTags, so a
+	// handler writes itself into a child node and reads back through ContainerHelper's codec based lists.
+	public void serialize(ValueOutput output) {
+		ContainerHelper.saveAllItems(output, stacks);
+	}
+
+	public void deserialize(ValueInput input) {
+		ContainerHelper.loadAllItems(input, stacks);
+		onLoad();
+	}
+
 	public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+		// 26.3: ItemStack no longer has save(Provider, CompoundTag); it is codec-only now, so every
+		// stack is encoded through ItemStack.CODEC against a registry-aware NBT ops instance.
+		RegistryOps<Tag> ops = provider.createSerializationContext(NbtOps.INSTANCE);
 		ListTag nbtTagList = new ListTag();
 		for (int slot = 0; slot < stacks.size(); slot++) {
 			ItemStack stack = stacks.get(slot);
 			if (!stack.isEmpty()) {
-				CompoundTag itemTag = new CompoundTag();
+				Optional<Tag> encoded = ItemStack.CODEC.encodeStart(ops, stack).result();
+				if (encoded.isEmpty()) {
+					continue;
+				}
+				CompoundTag itemTag = (CompoundTag) encoded.get();
 				itemTag.putInt("Slot", slot);
-				nbtTagList.add(stack.save(provider, itemTag));
+				nbtTagList.add(itemTag);
 			}
 		}
 		CompoundTag nbt = new CompoundTag();
@@ -154,13 +182,18 @@ public class ItemStackHandler implements IItemHandlerModifiable {
 	}
 
 	public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-		setSize(nbt.contains("Size", Tag.TAG_INT) ? nbt.getInt("Size") : stacks.size());
-		ListTag tagList = nbt.getList("Items", Tag.TAG_COMPOUND);
+		RegistryOps<Tag> ops = provider.createSerializationContext(NbtOps.INSTANCE);
+		setSize(nbt.contains("Size") ? nbt.getIntOr("Size", stacks.size()) : stacks.size());
+		ListTag tagList = nbt.getListOrEmpty("Items");
 		for (int i = 0; i < tagList.size(); i++) {
-			CompoundTag itemTags = tagList.getCompound(i);
-			int slot = itemTags.getInt("Slot");
+			Optional<CompoundTag> optionalItemTags = tagList.getCompound(i);
+			if (optionalItemTags.isEmpty()) {
+				continue;
+			}
+			CompoundTag itemTags = optionalItemTags.get();
+			int slot = itemTags.getIntOr("Slot", -1);
 			if (slot >= 0 && slot < stacks.size()) {
-				ItemStack.parse(provider, itemTags).ifPresent(stack -> stacks.set(slot, stack));
+				ItemStack.CODEC.parse(ops, itemTags).result().ifPresent(stack -> stacks.set(slot, stack));
 			}
 		}
 		onLoad();

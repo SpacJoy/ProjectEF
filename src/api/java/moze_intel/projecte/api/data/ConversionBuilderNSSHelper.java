@@ -6,7 +6,6 @@ import moze_intel.projecte.api.nss.NSSFluid;
 import moze_intel.projecte.api.nss.NSSItem;
 import moze_intel.projecte.api.nss.NormalizedSimpleStack;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
-import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -19,7 +18,6 @@ import net.minecraft.world.level.material.Fluid;
  * @implNote The reason this is an interface is to keep the main {@link ConversionBuilder} file cleaner to read.
  */
 @ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
 interface ConversionBuilderNSSHelper<PARENT> {
 
 	/**
