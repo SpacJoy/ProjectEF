@@ -90,7 +90,7 @@ public final class EMCManager {
 		};
 		boolean saved = CustomEMCParser.saveChange(player.registryAccess(), target, value);
 		if (saved) {
-			PECore.LOGGER.info("{} changed custom EMC for {} from {} to {}", player.getGameProfile().getName(), request.item(), request.expectedValue(), value);
+			PECore.LOGGER.info("{} changed custom EMC for {} from {} to {}", player.getName().getString(), request.item(), request.expectedValue(), value);
 		}
 		reply(player, request, permissions, saved ? Status.SAVED : Status.SAVE_FAILED);
 	}
@@ -132,12 +132,12 @@ public final class EMCManager {
 			reply(player, request, permissions, Status.NOT_READY);
 			return;
 		}
-		PECore.LOGGER.info("{} {} EMC exploit warnings", player.getGameProfile().getName(), log ? "enabled" : "disabled");
+		PECore.LOGGER.info("{} {} EMC exploit warnings", player.getName().getString(), log ? "enabled" : "disabled");
 		reply(player, request, permissions, log ? Status.LOG_ENABLED : Status.LOG_DISABLED);
 	}
 
 	private static void apply(ServerPlayer player, EMCManagerRequestPKT request, int permissions) {
-		MinecraftServer server = player.server;
+		MinecraftServer server = player.level().getServer();
 		long now = System.nanoTime();
 		Long lastRemap = LAST_REMAP.get(server);
 		if (lastRemap != null && now - lastRemap < 5_000_000_000L) {
@@ -174,7 +174,7 @@ public final class EMCManager {
 				PECore.packetHandler().updateTransmutationTargets(recipient);
 			}
 		}
-		PECore.LOGGER.info("{} applied custom EMC changes ({} values)", player.getGameProfile().getName(), EMCMappingHandler.getEmcMapSize());
+		PECore.LOGGER.info("{} applied custom EMC changes ({} values)", player.getName().getString(), EMCMappingHandler.getEmcMapSize());
 		reply(player, request, permissions, Status.APPLIED);
 	}
 
@@ -195,7 +195,7 @@ public final class EMCManager {
 			reply(player, request, permissions, Status.MOD_NO_OVERRIDE);
 			return;
 		}
-		PECore.LOGGER.info("{} removed {} custom EMC override(s) for mod {}", player.getGameProfile().getName(), removed, namespace);
+		PECore.LOGGER.info("{} removed {} custom EMC override(s) for mod {}", player.getName().getString(), removed, namespace);
 		reply(player, request, permissions, Status.MOD_RESET);
 	}
 

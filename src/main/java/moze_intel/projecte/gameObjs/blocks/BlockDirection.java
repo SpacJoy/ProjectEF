@@ -12,14 +12,15 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import moze_intel.projecte.api.item_handlers.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class BlockDirection extends Block {
 
-	public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
+	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
 
 	public BlockDirection(Properties props) {
 		super(props);
@@ -39,18 +40,17 @@ public abstract class BlockDirection extends Block {
 
 	@Override
 	@Deprecated
-	public void onRemove(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull BlockState newState, boolean isMoving) {
-		if (state.getBlock() != newState.getBlock()) {
-			IItemHandler handler = WorldHelper.getItemHandler(level, pos, state, null, null);
-			WorldHelper.dropInventory(handler, level, pos);
-			super.onRemove(state, level, pos, newState, isMoving);
-		}
+	protected void affectNeighborsAfterRemoval(@NotNull BlockState state, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull BlockPos pos, boolean isMoving) {
+		//26.3 dropped the newState parameter from affectNeighborsAfterRemoval, so there is nothing to compare against
+		IItemHandler handler = WorldHelper.getItemHandler(level, pos, state, null, null);
+		WorldHelper.dropInventory(handler, level, pos);
+		super.affectNeighborsAfterRemoval(state, level, pos, isMoving);
 	}
 
 	@Override
 	@Deprecated
 	public void attack(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player) {
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			ItemStack stack = player.getMainHandItem();
 			if (!stack.isEmpty() && stack.is(PEItems.PHILOSOPHERS_STONE.get())) {
 				level.setBlockAndUpdate(pos, level.getBlockState(pos).setValue(FACING, player.getDirection().getOpposite()));

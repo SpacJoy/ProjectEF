@@ -39,14 +39,14 @@ import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.entity.projectile.Snowball;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.context.UseOnContext;
@@ -63,19 +63,10 @@ public class Arcana extends ItemPE implements IItemMode<ArcanaMode>, IFireProtec
 				.component(PEDataComponentTypes.ARCANA_MODE.get(), ArcanaMode.ZERO)
 				.component(PEDataComponentTypes.STORED_EMC.get(), 0L)
 		);
-		//Vanilla has no creative-flight attribute. Arcana's flight is granted by InternalAbilities.shouldPlayerFly,
-		// which polls the hotbar, offhand, and Trinkets slots via PlayerHelper.checkHotbarCurios.
+		//26.3 removed Item#getDefaultAttributeModifiers; Arcana contributes no attribute modifiers at all, so the
+		// default component map already carries the empty set and no override is needed.
 		this.defaultModifiers = Suppliers.memoize(() -> ItemAttributeModifiers.builder().build());
 	}
-
-	@NotNull
-	@Override
-	@Deprecated
-	public ItemAttributeModifiers getDefaultAttributeModifiers() {
-		return this.defaultModifiers.get();
-	}
-
-	@NotNull
 
 	private void tick(ItemStack stack, Level level, ServerPlayer player) {
 		if (stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
@@ -89,31 +80,35 @@ public class Arcana extends ItemPE implements IItemMode<ArcanaMode>, IFireProtec
 	}
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
-		if (!level.isClientSide && hotBarOrOffHand(slot) && entity instanceof ServerPlayer player) {
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
+		if (!level.isClientSide() && hotBarOrOffHand(slot) && entity instanceof ServerPlayer player) {
 			tick(stack, level, player);
 		}
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
 		if (stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
-			tooltip.add(getToolTip(stack));
+			tooltip.accept(getToolTip(stack));
 		} else {
-			tooltip.add(PELang.TOOLTIP_ARCANA_INACTIVE.translateColored(ChatFormatting.RED));
+			tooltip.accept(PELang.TOOLTIP_ARCANA_INACTIVE.translateColored(ChatFormatting.RED));
 		}
 	}
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
-		if (!level.isClientSide) {
+	public InteractionResult use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
+		if (!level.isClientSide()) {
 			ItemStack stack = player.getItemInHand(hand);
-			stack.update(PEDataComponentTypes.ACTIVE.get(), false, active -> !active);
+			boolean active = stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false);
+			stack.set(PEDataComponentTypes.ACTIVE.get(), !active);
+			//Toggling the ring used to be completely silent, which left no confirmation that it switched on or off
+			SoundEvent sound = (active ? PESoundEvents.UNCHARGE : PESoundEvents.HEAL).get();
+			level.playSound(null, player.getX(), player.getY(), player.getZ(), sound, SoundSource.PLAYERS, 0.8F, 1.0F);
 		}
-		return InteractionResultHolder.success(player.getItemInHand(hand));
+		return InteractionResult.SUCCESS;
 	}
 
 	@NotNull
@@ -132,7 +127,7 @@ public class Arcana extends ItemPE implements IItemMode<ArcanaMode>, IFireProtec
 	public boolean doExtraFunction(@NotNull Player player, @NotNull ItemStack stack, InteractionHand hand) {
 		//GIANT FIRE ROW OF DEATH
 		Level level = player.level();
-		if (level.isClientSide) {
+		if (level.isClientSide()) {
 			return true;
 		}
 		if (getMode(stack) == ArcanaMode.IGNITION) {
@@ -156,14 +151,15 @@ public class Arcana extends ItemPE implements IItemMode<ArcanaMode>, IFireProtec
 	@Override
 	public boolean shootProjectile(@NotNull Player player, @NotNull ItemStack stack, InteractionHand hand) {
 		Level level = player.level();
-		if (level.isClientSide) {
+		if (level.isClientSide()) {
 			return false;
 		}
 		SoundEvent sound = null;
 		Projectile projectile = switch (getMode(stack)) {
 			case ZERO -> {
 				sound = SoundEvents.SNOWBALL_THROW;
-				yield new Snowball(level, player);
+				//26.3: the Snowball constructors take the item stack that the projectile represents
+				yield new Snowball(level, player, new ItemStack(Items.SNOWBALL));
 			}
 			case IGNITION -> {
 				sound = PESoundEvents.POWER.get();

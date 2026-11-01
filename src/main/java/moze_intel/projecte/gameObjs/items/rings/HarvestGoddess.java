@@ -29,12 +29,14 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BonemealSource;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
 public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
@@ -46,9 +48,9 @@ public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
 	}
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
-		if (level.isClientSide || !hotBarOrOffHand(slot) || !(entity instanceof Player player)) {
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
+		if (level.isClientSide() || !hotBarOrOffHand(slot) || !(entity instanceof Player player)) {
 			return;
 		}
 		if (stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
@@ -74,7 +76,7 @@ public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
 			return InteractionResult.FAIL;
 		}
 		if (ctx.isSecondaryUseActive()) {
-			for (ItemStack stack : player.getInventory().items) {
+			for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
 				if (stack.is(Items.BONE_MEAL)) {
 					InteractionResult result = useBoneMeal(level, pos, side, player, stack);
 					if (result != InteractionResult.PASS) {
@@ -97,12 +99,12 @@ public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
 		for (BlockPos currentPos : WorldHelper.horizontalPositionsAround(pos, 15)) {
 			boolean wasSuccessful = false;
 			BlockState state = level.getBlockState(currentPos);
-			if (state.getBlock() instanceof BonemealableBlock growable && growable.isValidBonemealTarget(level, currentPos, state)) {
+			if (state.getBlock() instanceof BonemealableBlock growable && growable.isValidBonemealTarget(level, currentPos, state, BonemealSource.INTERACTION)) {
 				wasSuccessful = true;
 				if (level instanceof ServerLevel serverLevel) {
 					//Note: We mirror vanilla only checking isBonemealSuccess on the server side
-					if (growable.isBonemealSuccess(level, level.random, currentPos, state)) {
-						growable.performBonemeal(serverLevel, level.random, currentPos, state);
+					if (growable.isBonemealSuccess(level, level.getRandom(), currentPos, state, BonemealSource.INTERACTION)) {
+						growable.performBonemeal(serverLevel, level.getRandom(), currentPos, state, BonemealSource.INTERACTION);
 						player.gameEvent(GameEvent.ITEM_INTERACT_FINISH);
 						level.levelEvent(LevelEvent.PARTICLES_AND_SOUND_PLANT_GROWTH, currentPos, 0);
 					}
@@ -114,7 +116,7 @@ public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
 				BlockPos posAgainst = currentPos.relative(side.getOpposite());
 				if (level.getBlockState(posAgainst).isFaceSturdy(level, posAgainst, side) && BoneMealItem.growWaterPlant(ItemStack.EMPTY, level, currentPos, side)) {
 					successfulTargets++;
-					if (level.isClientSide) {
+					if (level.isClientSide()) {
 						break;
 					}
 					player.gameEvent(GameEvent.ITEM_INTERACT_FINISH);
@@ -122,7 +124,7 @@ public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
 				}
 			}
 		}
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			int alreadyRemoved = count - stack.getCount();
 			if (alreadyRemoved >= 0 && alreadyRemoved <= 4) {
 				//Note: We do this before checking successful targets is greater than zero so that we can sync changes that might have been made from the event
@@ -137,7 +139,7 @@ public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
 	}
 
 	private boolean plantSeeds(Level level, Player player, BlockPos pos) {
-		List<ItemStack> seeds = getAllSeeds(player.getInventory().items);
+		List<ItemStack> seeds = getAllSeeds(player.getInventory().getNonEquipmentItems());
 		if (seeds.isEmpty()) {
 			return false;
 		}
@@ -155,7 +157,7 @@ public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
 				if (stack.is(PETags.Items.PLANTABLE_SEEDS) && stack.getItem() instanceof BlockItem blockItem) {
 					if (placeContext == null) {
 						placeContext = new BlockPlaceContext(level, player, InteractionHand.MAIN_HAND, stack, new BlockHitResult(
-								currentPos.getCenter().relative(Direction.UP, 0.5), Direction.UP, currentPos, false
+								Vec3.atCenterOf(currentPos).relative(Direction.UP, 0.5), Direction.UP, currentPos, false
 						));
 						//Note: We don't want to replace the block we are trying to place against
 						placeContext.replaceClicked = false;
@@ -206,7 +208,7 @@ public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
 	@Override
 	public <PEDESTAL extends BlockEntity & IDMPedestal> boolean updateInPedestal(@NotNull ItemStack stack, @NotNull Level level, @NotNull BlockPos pos,
 			@NotNull PEDESTAL pedestal) {
-		if (!level.isClientSide && ProjectEConfig.server.cooldown.pedestal.harvest.get() != -1) {
+		if (!level.isClientSide() && ProjectEConfig.server.cooldown.pedestal.harvest.get() != -1) {
 			if (pedestal.getActivityCooldown() == 0) {
 				WorldHelper.growNearbyRandomly(true, level, pedestal.getEffectBounds(), null);
 				pedestal.setActivityCooldown(level, pos, ProjectEConfig.server.cooldown.pedestal.harvest.get());

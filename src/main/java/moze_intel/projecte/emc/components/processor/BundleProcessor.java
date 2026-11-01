@@ -6,6 +6,7 @@ import moze_intel.projecte.config.PEConfigTranslations;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.component.BundleContents;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,7 +41,8 @@ public class BundleProcessor extends SimpleContainerProcessor<BundleContents> {
 	}
 
 	@Override
+	//26.3: BundleContents#items now hands back ItemStackTemplate entries, so convert each one to a real stack
 	protected Iterable<ItemStack> getStoredItems(BundleContents component) {
-		return component.items();
+		return component.items().stream().map(ItemStackTemplate::create).toList();
 	}
 }

@@ -25,7 +25,7 @@ import moze_intel.projecte.integration.recipe_viewer.WorldTransmuteEntry;
 import moze_intel.projecte.utils.text.PELang;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,7 +51,7 @@ public class WorldTransmuteRecipeCategory implements IRecipeCategory<WorldTransm
 	}
 
 	@Override
-	public ResourceLocation getRegistryName(WorldTransmuteEntry recipe) {
+	public Identifier getRegistryName(WorldTransmuteEntry recipe) {
 		return recipe.syntheticId();
 	}
 

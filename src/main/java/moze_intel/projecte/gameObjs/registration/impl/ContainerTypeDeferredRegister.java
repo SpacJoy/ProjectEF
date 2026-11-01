@@ -7,7 +7,7 @@ import moze_intel.projecte.gameObjs.registration.INamedEntry;
 import moze_intel.projecte.gameObjs.registration.PEDeferredRegister;
 import moze_intel.projecte.utils.WorldHelper;
 import net.fabricmc.api.EnvType;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -38,7 +38,7 @@ public class ContainerTypeDeferredRegister extends PEDeferredRegister<MenuType<?
 	}
 
 	public <CONTAINER extends AbstractContainerMenu> ContainerTypeRegistryObject<CONTAINER> register(String name, IContainerFactory<CONTAINER> factory) {
-		return registerMenu(name, () -> new ExtendedScreenHandlerType<>((id, inv, data) -> factory.create(id, inv, wrapClientData(data)), RawScreenData.STREAM_CODEC));
+		return registerMenu(name, () -> new ExtendedMenuType<>((id, inv, data) -> factory.create(id, inv, wrapClientData(data)), RawScreenData.STREAM_CODEC));
 	}
 
 	@SuppressWarnings("unchecked")

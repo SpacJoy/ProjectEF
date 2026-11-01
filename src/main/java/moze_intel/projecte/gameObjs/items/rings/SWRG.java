@@ -33,9 +33,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
@@ -63,7 +63,7 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 			// Repel on both sides - smooth animation
 			WorldHelper.repelEntitiesSWRG(player.level(), player.getBoundingBox().inflate(5), player);
 		}
-		if (player.level().isClientSide) {
+		if (player.level().isClientSide()) {
 			return;
 		}
 		if (!hasEmc(player, stack, 64, true)) {
@@ -84,8 +84,8 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 	}
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
 		if (hotBarOrOffHand(slot) && entity instanceof Player player) {
 			tick(stack, player);
 		}
@@ -98,19 +98,19 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
-		tooltip.add(PELang.CURRENT_MODE.translateColored(ChatFormatting.AQUA, getMode(stack)));
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
+		tooltip.accept(PELang.CURRENT_MODE.translateColored(ChatFormatting.AQUA, getMode(stack)));
 	}
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(Level level, Player player, @NotNull InteractionHand hand) {
+	public InteractionResult use(Level level, Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			changeMode(player, stack, hand);
 		}
-		return InteractionResultHolder.success(stack);
+		return InteractionResult.SUCCESS;
 	}
 
 	/**
@@ -144,8 +144,11 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 		} else if (oldMode == SWRGMode.OFF || mode == SWRGMode.SHIELDED_FLIGHT) {
 			//At least one mode activated
 			sound = PESoundEvents.HEAL.get();
+		} else if (mode.hasShield() != oldMode.hasShield()) {
+			//Shifting between the plain and shielded variants of the same power used to stay silent, which left the
+			// shield mode with no feedback at all. A shield turning on charges up, a shield turning off discharges.
+			sound = (mode.hasShield() ? PESoundEvents.HEAL : PESoundEvents.UNCHARGE).get();
 		}
-		//Doesn't handle going from mode 1 to 2 or 2 to 1, which is why the sound may still be null here
 		if (sound != null) {
 			player.level().playSound(null, player.getX(), player.getY(), player.getZ(), sound, SoundSource.PLAYERS, 0.8F, 1.0F);
 			//This transition has been announced now, so the take-off/landing feedback must stay quiet for it
@@ -162,13 +165,15 @@ public class SWRG extends ItemPE implements IPedestalItem, IProjectileShooter, I
 	@Override
 	public <PEDESTAL extends BlockEntity & IDMPedestal> boolean updateInPedestal(@NotNull ItemStack stack, @NotNull Level level, @NotNull BlockPos pos,
 			@NotNull PEDESTAL pedestal) {
-		if (!level.isClientSide && ProjectEConfig.server.cooldown.pedestal.swrg.get() != -1) {
+		if (!level.isClientSide() && ProjectEConfig.server.cooldown.pedestal.swrg.get() != -1) {
 			if (pedestal.getActivityCooldown() <= 0) {
 				for (Mob living : level.getEntitiesOfClass(Mob.class, pedestal.getEffectBounds(),
 						ent -> !ent.isSpectator() && (!(ent instanceof TamableAnimal tamableAnimal) || !tamableAnimal.isTame()))) {
-					LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(level);
+					//26.3 moved the entity type constants onto EntityTypes
+					LightningBolt lightning = EntityTypes.LIGHTNING_BOLT.create(level, net.minecraft.world.entity.EntitySpawnReason.TRIGGERED);
 					if (lightning != null) {
-						lightning.moveTo(living.position());
+						//26.3 renamed Entity#moveTo to snapTo
+						lightning.snapTo(living.position());
 						level.addFreshEntity(lightning);
 					}
 				}

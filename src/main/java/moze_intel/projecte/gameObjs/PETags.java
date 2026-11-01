@@ -3,7 +3,7 @@ package moze_intel.projecte.gameObjs;
 import moze_intel.projecte.PECore;
 import moze_intel.projecte.integration.IntegrationHelper;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
@@ -66,11 +66,11 @@ public class PETags {
 		}
 
 		private static TagKey<Item> trinketsTag(String name) {
-			return TagKey.create(net.minecraft.core.registries.Registries.ITEM, ResourceLocation.fromNamespaceAndPath("trinkets", name));
+			return TagKey.create(net.minecraft.core.registries.Registries.ITEM, Identifier.fromNamespaceAndPath("trinkets", name));
 		}
 
 		private static TagKey<Item> commonTag(String name) {
-			return TagKey.create(net.minecraft.core.registries.Registries.ITEM, ResourceLocation.fromNamespaceAndPath("c", name));
+			return TagKey.create(net.minecraft.core.registries.Registries.ITEM, Identifier.fromNamespaceAndPath("c", name));
 		}
 	}
 
@@ -122,7 +122,7 @@ public class PETags {
 		}
 
 		private static TagKey<Block> commonTag(String name) {
-			return TagKey.create(net.minecraft.core.registries.Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("c", name));
+			return TagKey.create(net.minecraft.core.registries.Registries.BLOCK, Identifier.fromNamespaceAndPath("c", name));
 		}
 	}
 

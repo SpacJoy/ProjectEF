@@ -92,6 +92,19 @@ public class ItemDeferredRegister extends PEDeferredRegister<Item> {
 		return register(name, () -> sup.apply(new NoDurabilityItemProperties().stacksTo(1).fireResistant()));
 	}
 
+	/**
+	 * 26.3 removed {@code ArmorItem}: the material and slot now live on {@code Item.Properties#humanoidArmor}, which also
+	 * applies the durability/attribute/repair components the old ArmorItem constructor used to add. The slot is handed to
+	 * the factory as well so subclasses do not have to hardcode it a second time.
+	 * <p>
+	 * ProjectE gear is meant to be damage free, so the properties object swallows the durability write that
+	 * {@code humanoidArmor} performs; otherwise every piece would end up with a MAX_DAMAGE component.
+	 */
+	public <ITEM extends Item> ItemRegistryObject<ITEM> registerArmor(String name, net.minecraft.world.item.equipment.ArmorMaterial material,
+			net.minecraft.world.item.equipment.ArmorType type, java.util.function.BiFunction<net.minecraft.world.item.equipment.ArmorType, Item.Properties, ITEM> sup) {
+		return register(name, () -> sup.apply(type, new NoDurabilityItemProperties().stacksTo(1).fireResistant().humanoidArmor(material, type)));
+	}
+
 	public <ITEM extends Item> ItemRegistryObject<ITEM> register(String name, Function<Item.Properties, ITEM> sup, UnaryOperator<Item.Properties> propertyModifier) {
 		return register(name, () -> sup.apply(propertyModifier.apply(new Item.Properties())));
 	}

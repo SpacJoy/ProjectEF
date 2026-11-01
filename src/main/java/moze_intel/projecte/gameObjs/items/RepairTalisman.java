@@ -35,16 +35,16 @@ public class RepairTalisman extends ItemPE implements IAlchBagItem, IAlchChestIt
 																							PECapabilities.MODE_CHANGER_ITEM_CAPABILITY.find(stack) == null &&
 																							ItemHelper.isRepairableDamagedItem(stack);
 	private static final BiPredicate<ItemStack, Player> CAN_REPAIR_PLAYER_ITEM =
-			(stack, player) -> CAN_REPAIR_ITEM.test(stack, null) && (stack != player.getMainHandItem() || !player.swinging);
+			(stack, player) -> CAN_REPAIR_ITEM.test(stack, null) && (stack != player.getMainHandItem() || !player.isSwinging());
 
 	public RepairTalisman(Properties props) {
 		super(props.component(PEDataComponentTypes.COOLDOWN.get(), (byte) 0));
 	}
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
-		if (!level.isClientSide && entity instanceof Player player && PlayerHelper.checkCooldown(player, this, ProjectEConfig.server.cooldown.player.repair)) {
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
+		if (!level.isClientSide() && entity instanceof Player player && PlayerHelper.checkCooldown(player, this, ProjectEConfig.server.cooldown.player.repair)) {
 			repairAllItems(player);
 		}
 	}
@@ -52,7 +52,7 @@ public class RepairTalisman extends ItemPE implements IAlchBagItem, IAlchChestIt
 	@Override
 	public <PEDESTAL extends BlockEntity & IDMPedestal> boolean updateInPedestal(@NotNull ItemStack stack, @NotNull Level level, @NotNull BlockPos pos,
 			@NotNull PEDESTAL pedestal) {
-		if (!level.isClientSide && ProjectEConfig.server.cooldown.pedestal.repair.get() != -1) {
+		if (!level.isClientSide() && ProjectEConfig.server.cooldown.pedestal.repair.get() != -1) {
 			if (pedestal.getActivityCooldown() == 0) {
 				level.getEntitiesOfClass(Player.class, pedestal.getEffectBounds()).forEach(RepairTalisman::repairAllItems);
 				pedestal.setActivityCooldown(level, pos, ProjectEConfig.server.cooldown.pedestal.repair.get());
@@ -76,7 +76,7 @@ public class RepairTalisman extends ItemPE implements IAlchBagItem, IAlchChestIt
 
 	@Override
 	public boolean updateInAlchChest(@NotNull Level level, @NotNull BlockPos pos, @NotNull ItemStack stack) {
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			IItemHandler inv = WorldHelper.getItemHandler(level, pos, null);
 			if (inv != null) {
 				return updateInHandler(inv, stack);
@@ -87,7 +87,7 @@ public class RepairTalisman extends ItemPE implements IAlchBagItem, IAlchChestIt
 
 	@Override
 	public boolean updateInAlchBag(@NotNull IItemHandler inv, @NotNull Player player, @NotNull ItemStack stack) {
-		return !player.level().isClientSide && updateInHandler(inv, stack);
+		return !player.level().isClientSide() && updateInHandler(inv, stack);
 	}
 
 	private boolean updateInHandler(@NotNull IItemHandler inv, @NotNull ItemStack stack) {

@@ -29,7 +29,7 @@ import moze_intel.projecte.api.item_handlers.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Collector extends BlockDirection implements PEEntityBlock<CollectorMK1BlockEntity> {
+public class Collector extends BlockDirection implements PEEntityBlock<CollectorMK1BlockEntity>, IHasBlockTooltip {
 
 	private final EnumCollectorTier tier;
 
@@ -46,7 +46,7 @@ public class Collector extends BlockDirection implements PEEntityBlock<Collector
 	@Override
 	@Deprecated
 	protected InteractionResult useWithoutItem(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player, @NotNull BlockHitResult hit) {
-		if (level.isClientSide) {
+		if (level.isClientSide()) {
 			return InteractionResult.SUCCESS;
 		}
 		CollectorMK1BlockEntity collector = WorldHelper.getBlockEntity(CollectorMK1BlockEntity.class, level, pos, true);
@@ -57,11 +57,10 @@ public class Collector extends BlockDirection implements PEEntityBlock<Collector
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
+	public void addTooltip(@NotNull java.util.function.Consumer<Component> tooltip) {
 		if (ProjectEConfig.client.statToolTips.get()) {
-			tooltip.add(PELang.EMC_MAX_GEN_RATE.translateColored(ChatFormatting.DARK_PURPLE, ChatFormatting.BLUE, EMCHelper.formatEmc(tier.getGenRate())));
-			tooltip.add(PELang.EMC_MAX_STORAGE.translateColored(ChatFormatting.DARK_PURPLE, ChatFormatting.BLUE, EMCHelper.formatEmc(tier.getStorage())));
+			tooltip.accept(PELang.EMC_MAX_GEN_RATE.translateColored(ChatFormatting.DARK_PURPLE, ChatFormatting.BLUE, EMCHelper.formatEmc(tier.getGenRate())));
+			tooltip.accept(PELang.EMC_MAX_STORAGE.translateColored(ChatFormatting.DARK_PURPLE, ChatFormatting.BLUE, EMCHelper.formatEmc(tier.getStorage())));
 		}
 	}
 
@@ -90,16 +89,16 @@ public class Collector extends BlockDirection implements PEEntityBlock<Collector
 
 	@Override
 	@Deprecated
-	public int getAnalogOutputSignal(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos) {
+	public int getAnalogOutputSignal(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Direction direction) {
 		CollectorMK1BlockEntity collector = WorldHelper.getBlockEntity(CollectorMK1BlockEntity.class, level, pos, true);
 		if (collector == null) {
 			//If something went wrong fallback to default implementation
-			return super.getAnalogOutputSignal(state, level, pos);
+			return super.getAnalogOutputSignal(state, level, pos, direction);
 		}
 		IItemHandler handler = WorldHelper.getItemHandler(level, pos, state, collector, Direction.UP);
 		if (handler == null) {
 			//If something went wrong fallback to default implementation
-			return super.getAnalogOutputSignal(state, level, pos);
+			return super.getAnalogOutputSignal(state, level, pos, direction);
 		}
 		ItemStack charging = handler.getStackInSlot(CollectorMK1BlockEntity.UPGRADING_SLOT);
 		if (charging.isEmpty()) {
@@ -114,14 +113,13 @@ public class Collector extends BlockDirection implements PEEntityBlock<Collector
 
 	@Override
 	@Deprecated
-	public void onRemove(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull BlockState newState, boolean isMoving) {
-		if (state.getBlock() != newState.getBlock()) {
-			CollectorMK1BlockEntity ent = WorldHelper.getBlockEntity(CollectorMK1BlockEntity.class, level, pos);
-			if (ent != null) {
-				//Clear the ghost slot so calling super doesn't drop the item in it
-				ent.clearLocked();
-			}
-			super.onRemove(state, level, pos, newState, isMoving);
+	protected void affectNeighborsAfterRemoval(@NotNull BlockState state, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull BlockPos pos, boolean isMoving) {
+		//26.3 dropped the newState parameter from affectNeighborsAfterRemoval
+		CollectorMK1BlockEntity ent = WorldHelper.getBlockEntity(CollectorMK1BlockEntity.class, level, pos);
+		if (ent != null) {
+			//Clear the ghost slot so calling super doesn't drop the item in it
+			ent.clearLocked();
 		}
+		super.affectNeighborsAfterRemoval(state, level, pos, isMoving);
 	}
 }

@@ -16,13 +16,13 @@ import org.jetbrains.annotations.NotNull;
 public class PEHammer extends PETool implements IHasConditionalAttributes {
 
 	public PEHammer(IMatterType matterType, int numCharges, Properties props) {
-		super(matterType, PETags.Blocks.MINEABLE_WITH_PE_HAMMER, numCharges, props.attributes(createAttributes(matterType, 10, -3)));
+		super(matterType, numCharges, matterType.applyCustomTool(props, PETags.Blocks.MINEABLE_WITH_PE_HAMMER, 10, -3));
 	}
 
 	@Override
-	public boolean hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity damaged, @NotNull LivingEntity damager) {
+	//26.3 changed Item#hurtEnemy to return void
+	public void hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity damaged, @NotNull LivingEntity damager) {
 		ToolHelper.attackWithCharge(stack, damaged, damager, 1.0F);
-		return true;
 	}
 
 	@Override

@@ -7,6 +7,10 @@ import it.unimi.dsi.fastutil.ints.IntListIterator;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;
 import it.unimi.dsi.fastutil.objects.Reference2LongMaps;
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
+import java.util.EnumMap;
+import net.minecraft.core.Holder;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.crafting.Ingredient;
 import java.util.Map;
 import java.util.function.ToLongFunction;
 import moze_intel.projecte.api.ItemInfo;
@@ -14,7 +18,7 @@ import moze_intel.projecte.api.components.DataComponentProcessor;
 import moze_intel.projecte.api.components.IComponentProcessorHelper;
 import moze_intel.projecte.config.PEConfigTranslations;
 import moze_intel.projecte.utils.Constants;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -44,6 +48,22 @@ public class FireworkStarProcessor extends PersistentComponentProcessor<Firework
 	private Reference2LongMap<FireworkExplosion.Shape> shapeEmcLookup = Reference2LongMaps.emptyMap();
 	//Lookup min emc value for these ingredients, so that if any mods expand on them with ATs, we can make use of it
 	private long trailEmc, twinkleEmc;
+	//26.3 made FireworkStarRecipe fully data driven; the vanilla shape ingredients are restated here so that the
+	// lookup still works on the client, where the recipe manager is not synced. It is built lazily because the
+	// skulls entry has to read the item registry, which is not ready while this class is being initialized.
+	private static Map<FireworkExplosion.Shape, Ingredient> vanillaShapeIngredients;
+
+	private static Map<FireworkExplosion.Shape, Ingredient> vanillaShapeIngredients() {
+		if (vanillaShapeIngredients == null) {
+			vanillaShapeIngredients = Util.make(new EnumMap<>(FireworkExplosion.Shape.class), map -> {
+				map.put(FireworkExplosion.Shape.BURST, Ingredient.of(Items.FEATHER));
+				map.put(FireworkExplosion.Shape.CREEPER, Ingredient.of(BuiltInRegistries.ITEM.getOrThrow(ItemTags.SKULLS)));
+				map.put(FireworkExplosion.Shape.LARGE_BALL, Ingredient.of(Items.FIRE_CHARGE));
+				map.put(FireworkExplosion.Shape.STAR, Ingredient.of(Items.GOLD_NUGGET));
+			});
+		}
+		return vanillaShapeIngredients;
+	}
 
 	@Override
 	public String getName() {
@@ -132,17 +152,26 @@ public class FireworkStarProcessor extends PersistentComponentProcessor<Firework
 		}
 		//Note: We subtract one from the length, as SMALL_BALL does not require any, and won't be processed or stored
 		shapeEmcLookup = new Reference2LongOpenHashMap<>(FireworkExplosion.Shape.values().length - 1);
-		for (Map.Entry<Item, FireworkExplosion.Shape> entry : FireworkStarRecipe.SHAPE_BY_ITEM.entrySet()) {
-			FireworkExplosion.Shape shape = entry.getValue();
+		//26.3 made FireworkStarRecipe fully data driven, and updateCachedValues runs on the client too, where the
+		// recipe manager is not available. The vanilla shape ingredients are therefore restated here; mods that
+		// replace the firework_star recipe would need their own processor.
+		for (Map.Entry<FireworkExplosion.Shape, Ingredient> entry : vanillaShapeIngredients().entrySet()) {
+			FireworkExplosion.Shape shape = entry.getKey();
 			if (shape != FireworkExplosion.Shape.SMALL_BALL) {
-				long emc = emcLookup.applyAsLong(ItemInfo.fromItem(entry.getKey()));
+				long emc = IComponentProcessorHelper.INSTANCE.getMinEmcFor(emcLookup, entry.getValue());
 				if (emc > 0) {
 					shapeEmcLookup.mergeLong(shape, emc, Math::min);
+				} else {
+					//Fall back to the single item the vanilla shape ingredient stands for
+					long singleEmc = emcLookup.applyAsLong(ItemInfo.fromItem(entry.getValue().getSingleItem().map(Holder::value).orElse(Items.AIR)));
+					if (singleEmc > 0) {
+						shapeEmcLookup.mergeLong(shape, singleEmc, Math::min);
+					}
 				}
 			}
 		}
-		trailEmc = IComponentProcessorHelper.INSTANCE.getMinEmcFor(emcLookup, FireworkStarRecipe.TRAIL_INGREDIENT);
-		twinkleEmc = IComponentProcessorHelper.INSTANCE.getMinEmcFor(emcLookup, FireworkStarRecipe.TWINKLE_INGREDIENT);
+		trailEmc = IComponentProcessorHelper.INSTANCE.getMinEmcFor(emcLookup, Ingredient.of(Items.DIAMOND));
+		twinkleEmc = IComponentProcessorHelper.INSTANCE.getMinEmcFor(emcLookup, Ingredient.of(Items.GLOWSTONE_DUST));
 	}
 
 	@Override

@@ -3,6 +3,7 @@ package moze_intel.projecte.mixin;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import moze_intel.projecte.events.PlayerEvents;
 import moze_intel.projecte.gameObjs.items.armor.PEArmor.ReductionInfo;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,8 +17,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
 
-	@Inject(method = "hurt", at = @At("HEAD"), cancellable = true)
-	private void projecte$fullDamageBlock(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+	//26.3 split the damage entry point: Entity#hurt is now final and delegates to hurtServer(ServerLevel, ...),
+	// which is the only overridable step, so the full block has to be hooked there instead
+	@Inject(method = "hurtServer", at = @At("HEAD"), cancellable = true)
+	private void projecte$fullDamageBlock(ServerLevel level, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
 		if (amount > 0) {
 			ReductionInfo reductionInfo = PlayerEvents.getArmorReduction((LivingEntity) (Object) this, source);
 			if (reductionInfo.percentReduced() >= 1) {

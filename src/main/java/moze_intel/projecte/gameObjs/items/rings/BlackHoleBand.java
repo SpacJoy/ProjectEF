@@ -24,7 +24,6 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -62,7 +61,7 @@ public class BlackHoleBand extends PEToggleItem implements IAlchBagItem, IAlchCh
 				if (sound.isPresent()) {
 					player.level().playSound(null, player.getX(), player.getY(), player.getZ(), sound.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 				}
-				return InteractionResult.sidedSuccess(level.isClientSide);
+				return (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 			}
 		}
 		return InteractionResult.PASS;
@@ -70,21 +69,21 @@ public class BlackHoleBand extends PEToggleItem implements IAlchBagItem, IAlchCh
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
+	public InteractionResult use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 		InteractionResult result = tryPickupFluid(level, player, stack);
 		if (!result.consumesAction() && changeMode(player, stack, hand)) {
-			result = InteractionResult.sidedSuccess(level.isClientSide);
+			result = (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 		}
-		return ItemHelper.actionResultFromType(result, stack);
+		return result;
 	}
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
 		if (entity instanceof Player player && stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
 			for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(7))) {
-				if (ItemHelper.simulateFit(player.getInventory().items, item.getItem()) < item.getItem().getCount()) {
+				if (ItemHelper.simulateFit(player.getInventory().getNonEquipmentItems(), item.getItem()) < item.getItem().getCount()) {
 					WorldHelper.gravitateEntityTowards(item, player.position());
 				}
 			}
@@ -94,11 +93,11 @@ public class BlackHoleBand extends PEToggleItem implements IAlchBagItem, IAlchCh
 	@Override
 	public <PEDESTAL extends BlockEntity & IDMPedestal> boolean updateInPedestal(@NotNull ItemStack stack, @NotNull Level level, @NotNull BlockPos pos,
 			@NotNull PEDESTAL pedestal) {
-		Vec3 target = pos.getCenter();
+		Vec3 target = Vec3.atCenterOf(pos);
 		Map<Direction, IItemHandler> nearbyHandlers = new EnumMap<>(Direction.class);
 		for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, pedestal.getEffectBounds(), ent -> !ent.isSpectator() && ent.isAlive())) {
 			WorldHelper.gravitateEntityTowards(item, target);
-			if (!level.isClientSide && item.distanceToSqr(target) < 1.21) {
+			if (!level.isClientSide() && item.distanceToSqr(target) < 1.21) {
 				for (Direction dir : Constants.DIRECTIONS) {
 					//Cache the item handlers in various spots so that we only query each neighboring position once
 					IItemHandler inv = nearbyHandlers.get(dir);
@@ -136,7 +135,7 @@ public class BlackHoleBand extends PEToggleItem implements IAlchBagItem, IAlchCh
 				Vec3 center = aabb.getCenter();
 				for (ItemEntity e : level.getEntitiesOfClass(ItemEntity.class, aabb, ent -> !ent.isSpectator() && ent.isAlive())) {
 					WorldHelper.gravitateEntityTowards(e, center);
-					if (!level.isClientSide && e.distanceToSqr(center) < 1.21) {
+					if (!level.isClientSide() && e.distanceToSqr(center) < 1.21) {
 						ItemStack result = ItemHandlerHelper.insertItemStacked(handler, e.getItem(), false);
 						if (!result.isEmpty()) {
 							e.setItem(result);

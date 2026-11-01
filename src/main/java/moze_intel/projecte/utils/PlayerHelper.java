@@ -11,7 +11,6 @@ import moze_intel.projecte.api.item_handlers.IItemHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -20,6 +19,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemCooldowns;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SignBlock;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
@@ -67,9 +67,9 @@ public final class PlayerHelper {
 		return hasBreakPermission(player, level, pos) && partiallyCheckedPlaceBlock(player, level, pos, state);
 	}
 
-	public static ItemStack findFirstItem(Player player, Holder<Item> consumeFrom) {
-		for (ItemStack s : player.getInventory().items) {
-			if (!s.isEmpty() && s.is(consumeFrom.value())) {
+	public static ItemStack findFirstItem(Player player, Item consumeFrom) {
+		for (ItemStack s : player.getInventory().getNonEquipmentItems()) {
+			if (!s.isEmpty() && s.is(consumeFrom)) {
 				return s;
 			}
 		}
@@ -133,7 +133,8 @@ public final class PlayerHelper {
 	}
 
 	public static boolean hasEditPermission(Player player, Level level, BlockPos pos) {
-		if (!player.mayInteract(level, pos)) {
+		//26.3: mayInteract moved onto Player but only accepts a ServerLevel
+		if (level instanceof ServerLevel serverLevel && !player.mayInteract(serverLevel, pos)) {
 			return false;
 		}
 		for (Direction e : Constants.DIRECTIONS) {
@@ -150,10 +151,8 @@ public final class PlayerHelper {
 	}
 
 	public static void swingItem(Player player, InteractionHand hand) {
-		if (player.level() instanceof ServerLevel level) {
-			int action = hand == InteractionHand.MAIN_HAND ? ClientboundAnimatePacket.SWING_MAIN_HAND : ClientboundAnimatePacket.SWING_OFF_HAND;
-			level.getChunkSource().broadcastAndSend(player, new ClientboundAnimatePacket(player, action));
-		}
+		//26.3: ClientboundAnimatePacket lost its swing actions; LivingEntity#swing broadcasts the animation itself
+		player.swing(hand, SwingAnimation.DEFAULT, true);
 	}
 
 	public static void updateScore(ServerPlayer player, ObjectiveCriteria objective, BigInteger value) {
@@ -161,7 +160,7 @@ public final class PlayerHelper {
 	}
 
 	public static void updateScore(ServerPlayer player, ObjectiveCriteria objective, int value) {
-		player.getScoreboard().forAllObjectives(objective, player, score -> score.set(value));
+		player.level().getServer().getScoreboard().forAllObjectives(objective, player, score -> score.set(value));
 	}
 
 	public static boolean checkFeedCooldown(Player player) {
@@ -174,14 +173,16 @@ public final class PlayerHelper {
 
 	public static boolean checkCooldown(Player player, Item item, IntSupplier cooldownSupplier) {
 		ItemCooldowns cooldowns = player.getCooldowns();
-		if (cooldowns.isOnCooldown(item)) {
+		//26.3: cooldowns are tracked per ItemStack instead of per Item
+		ItemStack stack = new ItemStack(item);
+		if (cooldowns.isOnCooldown(stack)) {
 			return false;
 		}
 		int cooldown = cooldownSupplier.getAsInt();
 		if (cooldown == -1) {
 			return false;
 		} else if (cooldown > 0) {
-			cooldowns.addCooldown(item, cooldown);
+			cooldowns.addCooldown(stack, cooldown);
 		}
 		return true;
 	}

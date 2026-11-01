@@ -25,7 +25,7 @@ public class RawMaterialsBlacklistMapper implements IEMCMapper<NormalizedSimpleS
 	@Override
 	public void addMappings(IMappingCollector<NormalizedSimpleStack, Long> mapper, RecipeManager recipeManager,
 			RegistryAccess registryAccess, ResourceManager resourceManager) {
-		Optional<Named<Item>> tag = BuiltInRegistries.ITEM.getTag(ConventionalItemTags.RAW_MATERIALS);
+		Optional<Named<Item>> tag = ((net.minecraft.core.HolderGetter<net.minecraft.world.item.Item>) BuiltInRegistries.ITEM).get(ConventionalItemTags.RAW_MATERIALS);
 		if (tag.isPresent()) {
 			for (Holder<Item> holder : tag.get()) {
 				NSSItem rawOre = NSSItem.createItem(holder);

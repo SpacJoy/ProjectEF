@@ -8,8 +8,6 @@ import moze_intel.projecte.gameObjs.registries.PEBlocks;
 import moze_intel.projecte.utils.text.TextComponentUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -22,6 +20,8 @@ import java.util.function.BiFunction;
 import moze_intel.projecte.api.item_handlers.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class AlchBlockEntityChest extends EmcChestBlockEntity implements PEWorldlyContainer {
 
@@ -31,7 +31,7 @@ public class AlchBlockEntityChest extends EmcChestBlockEntity implements PEWorld
 		@Override
 		public void onContentsChanged(int slot) {
 			super.onContentsChanged(slot);
-			if (level != null && !level.isClientSide) {
+			if (level != null && !level.isClientSide()) {
 				inventoryChanged = true;
 			}
 		}
@@ -43,15 +43,15 @@ public class AlchBlockEntityChest extends EmcChestBlockEntity implements PEWorld
 	}
 
 	@Override
-	public void loadAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.loadAdditional(tag, registries);
-		inventory.deserializeNBT(registries, tag);
+	public void loadAdditional(@NotNull ValueInput input) {
+		super.loadAdditional(input);
+		input.child("inventory").ifPresent(inventory::deserialize);
 	}
 
 	@Override
-	protected void saveAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.saveAdditional(tag, registries);
-		tag.merge(inventory.serializeNBT(registries));
+	protected void saveAdditional(@NotNull ValueOutput output) {
+		super.saveAdditional(output);
+		inventory.serialize(output.child("inventory"));
 	}
 
 	public static void tickClient(Level level, BlockPos pos, BlockState state, AlchBlockEntityChest alchChest) {

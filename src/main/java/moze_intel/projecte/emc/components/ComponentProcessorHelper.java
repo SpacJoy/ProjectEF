@@ -13,7 +13,7 @@ import moze_intel.projecte.utils.Constants;
 import net.fabricmc.fabric.api.recipe.v1.ingredient.CustomIngredient;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -41,7 +41,7 @@ public class ComponentProcessorHelper implements IComponentProcessorHelper {
 			//Calculate and store the min emc value needed for specific dye colors for use in data component processors
 			colorEmc = new Object2LongOpenHashMap<>();
 			for (DyeColor color : Constants.COLORS) {
-				long minColorEmc = getMinValue(emcLookup, BuiltInRegistries.ITEM.getTagOrEmpty(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("c", "dyes/" + color.getName()))), HOLDER_TO_INFO);
+				long minColorEmc = getMinValue(emcLookup, BuiltInRegistries.ITEM.getTagOrEmpty(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, net.minecraft.resources.Identifier.fromNamespaceAndPath("c", "dyes/" + color.getName()))), HOLDER_TO_INFO);
 				if (minColorEmc > 0) {
 					colorEmc.put(color, minColorEmc);
 				}
@@ -69,12 +69,13 @@ public class ComponentProcessorHelper implements IComponentProcessorHelper {
 
 	private ItemStack[] getMatchingStacks(Ingredient ingredient) {
 		try {
-			return ingredient.getItems();
+			//26.3 turned Ingredient#getItems into a Stream of item holders
+			return ingredient.items().map(Holder::value).map(ItemStack::new).toArray(ItemStack[]::new);
 		} catch (Exception e) {
 			//Note: In theory this should never throw as it is called after all the reload listeners have fired, but in case it does error: catch it
 			CustomIngredient customIngredient = ingredient.getCustomIngredient();
 			if (customIngredient != null) {//Should basically always be the case
-				ResourceLocation name = customIngredient.getSerializer().getIdentifier();
+				Identifier name = customIngredient.getSerializer().getIdentifier();
 				PECore.LOGGER.error(LogUtils.FATAL_MARKER, "Ingredient of type: {} crashed when getting the matching stacks. Please report this to the ingredient's creator ({}).",
 						name, name.getNamespace(), e);
 			} else {

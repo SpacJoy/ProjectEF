@@ -44,14 +44,15 @@ public abstract class FireBlockMixin {
 	}
 
 	@Redirect(method = "checkBurnOut", at = @At(value = "INVOKE",
-			target = "Lnet/minecraft/world/level/block/TntBlock;explode(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V"))
-	private static void projecte$igniteTnt(Level level, BlockPos pos) {
+			target = "Lnet/minecraft/world/level/block/TntBlock;prime(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)Z"))
+	private static boolean projecte$igniteTnt(Level level, BlockPos pos) {
+		//26.3 renamed TntBlock.explode(Level, BlockPos) to prime(Level, BlockPos) and made it return whether it worked.
 		Map<BlockPos, ProjectETNT> burning = BURNING_PROJECTE_TNT.get(level);
 		ProjectETNT tnt = burning == null ? null : burning.remove(pos);
 		if (tnt != null) {
 			tnt.createAndAddEntity(level, pos, null);
-		} else {
-			TntBlock.explode(level, pos);
+			return true;
 		}
+		return TntBlock.prime(level, pos);
 	}
 }

@@ -16,7 +16,7 @@ import moze_intel.projecte.gameObjs.PETags;
 import moze_intel.projecte.gameObjs.items.Tome;
 import moze_intel.projecte.integration.IntegrationHelper;
 import moze_intel.projecte.utils.text.PELang;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalItemTags;
@@ -31,7 +31,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -51,12 +50,12 @@ public class DumpMissingEmc {
 	 */
 	public static void registerClientCommand() {
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-				dispatcher.register(ClientCommandManager.literal("projecteclient").then(buildCommand())));
+				dispatcher.register(ClientCommands.literal("projecteclient").then(buildCommand())));
 	}
 
 	private static LiteralArgumentBuilder<FabricClientCommandSource> buildCommand() {
-		return ClientCommandManager.literal("dumpmissingemc")
-				.then(ClientCommandManager.argument("skip_expected", BoolArgumentType.bool())
+		return ClientCommands.literal("dumpmissingemc")
+				.then(ClientCommands.argument("skip_expected", BoolArgumentType.bool())
 						.executes(ctx -> execute(ctx, BoolArgumentType.getBool(ctx, "skip_expected")))
 				).executes(ctx -> execute(ctx, false));
 	}
@@ -70,12 +69,11 @@ public class DumpMissingEmc {
 			//Assume unbreakable blocks won't have an EMC value by default
 			case BlockItem blockItem when blockItem.getBlock().defaultDestroyTime() == Block.INDESTRUCTIBLE -> true;
 			case Tome tome when !ProjectEConfig.common.craftableTome.get() -> true;
-			case BundleItem bundleItem when !enabledFeatures.contains(FeatureFlags.BUNDLE) -> true;
 			default -> false;
 		}) {
 			return true;
 		} else if (FabricLoader.getInstance().isDevelopmentEnvironment() && SKIP_TOP &&
-				   holder.unwrapKey().map(key -> key.location().getNamespace().equals("theoneprobe")).orElse(false)) {
+				   holder.unwrapKey().map(key -> key.identifier().getNamespace().equals("theoneprobe")).orElse(false)) {
 			//Skip TOP items in dev
 			return true;
 		}
@@ -99,7 +97,8 @@ public class DumpMissingEmc {
 		RegistryAccess registryAccess = source.registryAccess();
 		Minecraft minecraft = source.getClient();
 		FeatureFlagSet features = minecraft.getConnection() == null ? FeatureFlags.DEFAULT_FLAGS : minecraft.getConnection().enabledFeatures();
-		CreativeModeTab tab = registryAccess.registryOrThrow(net.minecraft.core.registries.Registries.CREATIVE_MODE_TAB).get(CreativeModeTabs.SEARCH);
+		//26.3 Registry#get returns an Optional holder; getValue hands back the tab itself
+		CreativeModeTab tab = registryAccess.lookupOrThrow(net.minecraft.core.registries.Registries.CREATIVE_MODE_TAB).getValue(CreativeModeTabs.SEARCH);
 		if (tab == null || tab.getSearchTabDisplayItems().isEmpty()) {
 			//If the search tab hasn't been initialized yet initialize it
 			boolean hasPermissions = minecraft.options.operatorItemsTab().get();
@@ -108,7 +107,8 @@ public class DumpMissingEmc {
 				if (player != null) {
 					hasPermissions = player.canUseGameMasterBlocks();
 				} else {
-					hasPermissions = source.hasPermission(Commands.LEVEL_GAMEMASTERS);
+					//26.3 turned permission levels into PermissionCheck/PermissionSet pairs
+					hasPermissions = Commands.LEVEL_GAMEMASTERS.check(source.permissions());
 				}
 			}
 
@@ -120,7 +120,8 @@ public class DumpMissingEmc {
 		}
 
 		Set<ItemInfo> missing = new HashSet<>();
-		for (Item item : registryAccess.registryOrThrow(Registries.ITEM)) {
+		//26.3 made Registry non-iterable, so walk its stream instead
+		for (Item item : registryAccess.lookupOrThrow(Registries.ITEM).stream().toList()) {
 			//Skip air, and skip any items that are not currently enabled in the world
 			if (item != Items.AIR && item.isEnabled(features)) {
 				//Note: This is intentionally not using Item#getDefaultInstance as data component based variants should be based on the creative mode tabs

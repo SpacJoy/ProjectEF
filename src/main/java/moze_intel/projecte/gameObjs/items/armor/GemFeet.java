@@ -9,7 +9,6 @@ import moze_intel.projecte.utils.ClientKeyHelper;
 import moze_intel.projecte.utils.PEKeybind;
 import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
@@ -18,28 +17,25 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.loader.api.FabricLoader;
 import org.jetbrains.annotations.NotNull;
 
 public class GemFeet extends GemArmorBase {
 
-	private static final Vec3 VERTICAL_MOVEMENT = new Vec3(0, 0.1, 0);
 	private static final boolean STEP_ASSIST_DEFAULT = false;
 
 	private final Supplier<ItemAttributeModifiers> defaultModifiers;
 	private final Supplier<ItemAttributeModifiers> defaultWithStepAssistModifiers;
 
 	public GemFeet(Properties props) {
-		super(ArmorItem.Type.BOOTS, props.component(PEDataComponentTypes.STEP_ASSIST.get(), STEP_ASSIST_DEFAULT));
-		this.defaultModifiers = Suppliers.memoize(() -> super.getDefaultAttributeModifiers().withModifierAdded(
+		super(ArmorType.BOOTS, props.component(PEDataComponentTypes.STEP_ASSIST.get(), STEP_ASSIST_DEFAULT));
+		//26.3 removed Item#getDefaultAttributeModifiers; the base modifiers now live on the item default component map
+		this.defaultModifiers = Suppliers.memoize(() -> components().getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY).withModifierAdded(
 				Attributes.MOVEMENT_SPEED,
 				new AttributeModifier(PECore.rl("armor"), 1.0, Operation.ADD_MULTIPLIED_TOTAL),
 				EquipmentSlotGroup.FEET
@@ -51,9 +47,8 @@ public class GemFeet extends GemArmorBase {
 		));
 	}
 
-	@NotNull
-	@Override
-	public ItemAttributeModifiers getDefaultAttributeModifiers() {
+	//26.3: Item no longer declares getDefaultAttributeModifiers, so this is a plain helper instead of an override
+	private ItemAttributeModifiers getDefaultAttributeModifiers() {
 		return this.defaultModifiers.get();
 	}
 
@@ -78,50 +73,22 @@ public class GemFeet extends GemArmorBase {
 		syncStepAssistModifiers(stack, isStepAssist(stack));
 	}
 
-	private static boolean isJumpPressed(Player player) {
-		if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
-			return ClientHelper.isJumpPressed(player);
-		}
-		return false;
-	}
-
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
+		//26.3 only calls this on the server, so the jump assist lives in GemFeetClientTick on the client tick
 		if (entity instanceof Player player && isEquipped(stack, player)) {
-			if (!level.isClientSide) {
-				syncStepAssistModifiers(stack);
-				player.resetFallDistance();
-			} else {
-				//TODO: Do we want to try and make use of just applying Attributes.GRAVITY to the player instead? Default gravity is 0.08
-				// A modifier of -0.75, Operation.ADD_MULTIPLIED_TOTAL makes it so that we fall at about the same rate as what we do below
-				boolean flying = player.getAbilities().flying;
-				if (!flying && isJumpPressed(player)) {
-					player.addDeltaMovement(VERTICAL_MOVEMENT);
-				}
-				if (!player.onGround()) {
-					Vec3 deltaMovement = player.getDeltaMovement();
-					if (deltaMovement.y() <= 0) {
-						player.setDeltaMovement(deltaMovement = deltaMovement.multiply(1, 0.9, 1));
-					}
-					if (!flying) {
-						if (player.zza < 0) {//Moving backwards
-							player.setDeltaMovement(deltaMovement.multiply(0.9, 1, 0.9));
-						} else if (player.zza > 0 && deltaMovement.lengthSqr() < 3) {//Moving forwards
-							player.setDeltaMovement(deltaMovement.multiply(1.1, 1, 1.1));
-						}
-					}
-				}
-			}
+			syncStepAssistModifiers(stack);
+			player.resetFallDistance();
 		}
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
-		tooltip.add(PELang.GEM_LORE_FEET.translate());
-		tooltip.add(PELang.STEP_ASSIST_PROMPT.translate(ClientKeyHelper.getKeyName(PEKeybind.BOOTS_TOGGLE)));
-		tooltip.add(getComponent(isStepAssist(stack)));
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
+		tooltip.accept(PELang.GEM_LORE_FEET.translate());
+		tooltip.accept(PELang.STEP_ASSIST_PROMPT.translate(ClientKeyHelper.getKeyName(PEKeybind.BOOTS_TOGGLE)));
+		tooltip.accept(getComponent(isStepAssist(stack)));
 	}
 
 	private static boolean isStepAssist(ItemStack stack) {
@@ -133,18 +100,5 @@ public class GemFeet extends GemArmorBase {
 			return PELang.STEP_ASSIST.translate(ChatFormatting.GREEN, PELang.GEM_ENABLED);
 		}
 		return PELang.STEP_ASSIST.translate(ChatFormatting.RED, PELang.GEM_DISABLED);
-	}
-
-	/**
-	 * Nested so that the client-only {@link LocalPlayer} is never referenced on a dedicated server (classes are only loaded on first access).
-	 */
-	private static class ClientHelper {
-
-		private static boolean isJumpPressed(Player player) {
-			if (player instanceof LocalPlayer clientPlayer) {
-				return clientPlayer.input.jumping;
-			}
-			return false;
-		}
 	}
 }

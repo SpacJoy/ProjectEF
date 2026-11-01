@@ -6,28 +6,28 @@ import moze_intel.projecte.gameObjs.PETags;
 import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
-import moze_intel.projecte.utils.ItemHelper;
 import moze_intel.projecte.utils.ToolHelper;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ShovelItem;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
-public class PEShovel extends ShovelItem implements IItemCharge, IBarHelper, IEnchantableEquipment {
+public class PEShovel extends Item implements IItemCharge, IBarHelper, IEnchantableEquipment {
 
 	private final IMatterType matterType;
 	private final int numCharges;
 
+	/**
+	 * 26.3 deleted {@code ShovelItem}: the flattern/douse behaviour is ours already, only the tool component needed
+	 * rebuilding, which {@code Item.Properties#shovel} does from the matter's {@link net.minecraft.world.item.ToolMaterial}.
+	 */
 	public PEShovel(IMatterType matterType, int numCharges, Properties props) {
-		super(matterType, props.attributes(createAttributes(matterType, 2, -3))
+		super(matterType.applyShovel(props, 2, -3)
 				.component(PEDataComponentTypes.CHARGE.get(), 0)
 				.component(PEDataComponentTypes.STORED_EMC.get(), 0L)
 		);

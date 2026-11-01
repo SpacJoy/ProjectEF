@@ -1,6 +1,6 @@
 package moze_intel.projecte.gameObjs.registration;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 public class DoubleWrappedRegistryObject<PRIMARY_REGISTRY, PRIMARY extends PRIMARY_REGISTRY, SECONDARY_REGISTRY, SECONDARY extends SECONDARY_REGISTRY> implements INamedEntry {
@@ -24,7 +24,7 @@ public class DoubleWrappedRegistryObject<PRIMARY_REGISTRY, PRIMARY extends PRIMA
 	}
 
 	@Override
-	public ResourceLocation getId() {
+	public Identifier getId() {
 		return primaryRO.getId();
 	}
 

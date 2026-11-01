@@ -9,10 +9,10 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
-public record EMCManagerResponsePKT(int requestId, ResourceLocation item, long currentValue, long customValue,
+public record EMCManagerResponsePKT(int requestId, Identifier item, long currentValue, long customValue,
 		int permissions, boolean pending, Status status, boolean logExploits) implements IPEPacket {
 
 	public static final int CAN_SET = 1;
@@ -40,14 +40,14 @@ public record EMCManagerResponsePKT(int requestId, ResourceLocation item, long c
 	public static final StreamCodec<RegistryFriendlyByteBuf, EMCManagerResponsePKT> STREAM_CODEC = new StreamCodec<>() {
 		@Override
 		public EMCManagerResponsePKT decode(RegistryFriendlyByteBuf buffer) {
-			return new EMCManagerResponsePKT(buffer.readVarInt(), buffer.readResourceLocation(), buffer.readLong(), buffer.readLong(),
+			return new EMCManagerResponsePKT(buffer.readVarInt(), buffer.readIdentifier(), buffer.readLong(), buffer.readLong(),
 					buffer.readVarInt(), buffer.readBoolean(), buffer.readEnum(Status.class), buffer.readBoolean());
 		}
 
 		@Override
 		public void encode(RegistryFriendlyByteBuf buffer, EMCManagerResponsePKT packet) {
 			buffer.writeVarInt(packet.requestId);
-			buffer.writeResourceLocation(packet.item);
+			buffer.writeIdentifier(packet.item);
 			buffer.writeLong(packet.currentValue);
 			buffer.writeLong(packet.customValue);
 			buffer.writeVarInt(packet.permissions);

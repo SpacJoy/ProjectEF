@@ -7,8 +7,6 @@ import moze_intel.projecte.gameObjs.registries.PEBlockEntityTypes;
 import moze_intel.projecte.gameObjs.registries.PEBlocks;
 import moze_intel.projecte.utils.text.TextComponentUtil;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -20,6 +18,8 @@ import moze_intel.projecte.api.item_handlers.IItemHandlerModifiable;
 import moze_intel.projecte.api.item_handlers.ItemStackHandler;
 import moze_intel.projecte.api.item_handlers.CombinedInvWrapper;
 import org.jetbrains.annotations.NotNull;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class CondenserMK2BlockEntity extends CondenserBlockEntity {
 
@@ -70,15 +70,15 @@ public class CondenserMK2BlockEntity extends CondenserBlockEntity {
 	}
 
 	@Override
-	public void loadAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.loadAdditional(tag, registries);
-		getOutput().deserializeNBT(registries, tag.getCompound("output"));
+	public void loadAdditional(@NotNull ValueInput input) {
+		super.loadAdditional(input);
+		input.child("output").ifPresent(getOutput()::deserialize);
 	}
 
 	@Override
-	protected void saveAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.saveAdditional(tag, registries);
-		tag.put("output", getOutput().serializeNBT(registries));
+	protected void saveAdditional(@NotNull ValueOutput output) {
+		super.saveAdditional(output);
+		getOutput().serialize(output.child("output"));
 	}
 
 	@Override

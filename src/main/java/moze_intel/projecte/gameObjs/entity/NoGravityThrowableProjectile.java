@@ -18,8 +18,11 @@ public abstract class NoGravityThrowableProjectile extends ThrowableProjectile {
 		setNoGravity(true);
 	}
 
+	//26.3 removed the (EntityType, LivingEntity, Level) ThrowableProjectile constructor; subclasses position themselves
 	protected NoGravityThrowableProjectile(EntityType<? extends ThrowableProjectile> type, LivingEntity shooter, Level level) {
-		super(type, shooter, level);
+		super(type, level);
+		setOwner(shooter);
+		setPos(shooter.getX(), shooter.getEyeY() - 0.1, shooter.getZ());
 		setNoGravity(true);
 	}
 
@@ -35,7 +38,7 @@ public abstract class NoGravityThrowableProjectile extends ThrowableProjectile {
 	@Override
 	public void tick() {
 		super.tick();
-		if (!this.level().isClientSide) {
+		if (!this.level().isClientSide()) {
 			if (tickCount > (20 * SharedConstants.TICKS_PER_SECOND) || !level().isLoaded(blockPosition())) {
 				discard();
 			}
@@ -45,7 +48,7 @@ public abstract class NoGravityThrowableProjectile extends ThrowableProjectile {
 	@Override
 	protected void onHit(@NotNull HitResult result) {
 		super.onHit(result);
-		if (!level().isClientSide) {
+		if (!level().isClientSide()) {
 			level().broadcastEntityEvent(this, EntityEvent.DEATH);
 			discard();
 		}

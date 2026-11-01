@@ -1,4 +1,5 @@
 package moze_intel.projecte.gameObjs.items.tools;
+import net.minecraft.server.level.ServerLevel;
 
 import com.mojang.serialization.Codec;
 import io.netty.buffer.ByteBuf;
@@ -30,7 +31,6 @@ import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Shearable;
@@ -38,7 +38,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -48,15 +48,15 @@ import org.jetbrains.annotations.NotNull;
 public class PEKatar extends PETool implements IItemMode<KatarMode>, IExtraFunction, IHasConditionalAttributes {
 
 	public PEKatar(IMatterType matterType, int numCharges, Properties props) {
-		super(matterType, PETags.Blocks.MINEABLE_WITH_PE_KATAR, numCharges, props.attributes(createAttributes(matterType, 27, -2.4F))
+		super(matterType, numCharges, matterType.applyCustomTool(props, PETags.Blocks.MINEABLE_WITH_PE_KATAR, 27, -2.4F)
 				.component(PEDataComponentTypes.KATAR_MODE.get(), KatarMode.SLAY_HOSTILE)
 		);
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
-		tooltip.add(getToolTip(stack));
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
+		tooltip.accept(getToolTip(stack));
 	}
 
 	@NotNull
@@ -107,16 +107,16 @@ public class PEKatar extends PETool implements IItemMode<KatarMode>, IExtraFunct
 	}
 
 	@Override
-	public boolean hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity damaged, @NotNull LivingEntity damager) {
+	//26.3 changed Item#hurtEnemy to return void
+	public void hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity damaged, @NotNull LivingEntity damager) {
 		ToolHelper.attackWithCharge(stack, damaged, damager, 1.0F);
-		return true;
 	}
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
+	public InteractionResult use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
 		//Shear entities
-		return ItemHelper.actionResultFromType(ToolHelper.shearEntityAOE(player, hand, 0), player.getItemInHand(hand));
+		return ToolHelper.shearEntityAOE(player, hand, 0);
 	}
 
 	@Override
@@ -131,8 +131,8 @@ public class PEKatar extends PETool implements IItemMode<KatarMode>, IExtraFunct
 
 	@NotNull
 	@Override
-	public UseAnim getUseAnimation(@NotNull ItemStack stack) {
-		return UseAnim.BLOCK;
+	public ItemUseAnimation getUseAnimation(@NotNull ItemStack stack) {
+		return ItemUseAnimation.BLOCK;
 	}
 
 	@Override
@@ -154,10 +154,11 @@ public class PEKatar extends PETool implements IItemMode<KatarMode>, IExtraFunct
 		if (entity instanceof Shearable target) {
 			Level level = entity.level();
 			if (target.readyForShearing()) {
-				if (!level.isClientSide) {
-					target.shear(SoundSource.PLAYERS);
+				if (!level.isClientSide()) {
+					//26.3: Shearable#shear now needs the server level and the tool stack
+					target.shear((ServerLevel) level, SoundSource.PLAYERS, stack);
 				}
-				return InteractionResult.sidedSuccess(level.isClientSide);
+				return (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 			}
 		}
 		return InteractionResult.PASS;

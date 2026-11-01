@@ -86,7 +86,11 @@ public class ItemPE extends Item {
 		return true;
 	}
 
-	public static boolean hotBarOrOffHand(int slot) {
-		return slot < Inventory.getSelectionSize() || slot == Inventory.SLOT_OFFHAND;
+	/**
+	 * 26.3 changed {@code Item#inventoryTick} to report an {@link net.minecraft.world.entity.EquipmentSlot} instead of a
+	 * raw inventory index, so "is this stack in the hotbar or off hand" becomes a slot comparison.
+	 */
+	public static boolean hotBarOrOffHand(net.minecraft.world.entity.EquipmentSlot slot) {
+		return slot == net.minecraft.world.entity.EquipmentSlot.MAINHAND || slot == net.minecraft.world.entity.EquipmentSlot.OFFHAND;
 	}
 }

@@ -1,9 +1,10 @@
 package moze_intel.projecte.gameObjs.customRecipes;
 
+import com.mojang.serialization.MapCodec;
 import moze_intel.projecte.gameObjs.items.KleinStar;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
-import moze_intel.projecte.gameObjs.registries.PERecipeSerializers;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
@@ -12,20 +13,27 @@ import org.jetbrains.annotations.NotNull;
 
 public class RecipeShapelessKleinStar extends WrappedShapelessRecipe {
 
+	//Note: The wrapped shapeless recipe is serialized exactly like a vanilla shapeless recipe,
+	// we just swap in our own type/behaviour after deserialization.
+	public static final MapCodec<RecipeShapelessKleinStar> MAP_CODEC = ShapelessRecipe.MAP_CODEC.xmap(RecipeShapelessKleinStar::new, WrappedShapelessRecipe::getInternal);
+	public static final StreamCodec<RegistryFriendlyByteBuf, RecipeShapelessKleinStar> STREAM_CODEC = ShapelessRecipe.STREAM_CODEC.map(RecipeShapelessKleinStar::new,
+			WrappedShapelessRecipe::getInternal);
+	public static final RecipeSerializer<RecipeShapelessKleinStar> SERIALIZER = new RecipeSerializer<>(MAP_CODEC, STREAM_CODEC);
+
 	public RecipeShapelessKleinStar(ShapelessRecipe internal) {
 		super(internal);
 	}
 
 	@NotNull
 	@Override
-	public RecipeSerializer<?> getSerializer() {
-		return PERecipeSerializers.KLEIN.get();
+	public RecipeSerializer<RecipeShapelessKleinStar> getSerializer() {
+		return SERIALIZER;
 	}
 
 	@NotNull
 	@Override
-	public ItemStack assemble(@NotNull CraftingInput inv, @NotNull HolderLookup.Provider registryAccess) {
-		ItemStack result = getInternal().assemble(inv, registryAccess);
+	public ItemStack assemble(@NotNull CraftingInput inv) {
+		ItemStack result = getInternal().assemble(inv);
 		if (result.getItem() instanceof KleinStar resultingStar) {
 			long maxEmc = resultingStar.getMaximumEmc(result);
 			long storedEMC = 0;

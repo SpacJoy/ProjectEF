@@ -25,6 +25,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -36,7 +37,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraft.world.level.storage.ServerLevelData;
+import net.minecraft.world.level.saveddata.WeatherData;
 import org.jetbrains.annotations.NotNull;
 
 public class VolcaniteAmulet extends ItemPE implements IProjectileShooter, IPedestalItem, IFireProtector, ICapabilityAware {
@@ -55,7 +56,7 @@ public class VolcaniteAmulet extends ItemPE implements IProjectileShooter, IPede
 		Level level = ctx.getLevel();
 		BlockPos pos = ctx.getClickedPos();
 		ItemStack stack = ctx.getItemInHand();
-		if (!level.isClientSide && PlayerHelper.hasEditPermission(player, level, pos)) {
+		if (!level.isClientSide() && PlayerHelper.hasEditPermission(player, level, pos)) {
 			if (!consumeFuel(player, stack, 32, true)) {
 				player.sendSystemMessage(PELang.NOT_ENOUGH_EMC.translate());
 				return InteractionResult.FAIL;
@@ -72,7 +73,7 @@ public class VolcaniteAmulet extends ItemPE implements IProjectileShooter, IPede
 			WorldHelper.placeFluid(player, level, pos, sideHit, Fluids.LAVA, false);
 			level.playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.TRANSMUTE.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 		}
-		return InteractionResult.sidedSuccess(level.isClientSide);
+		return (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 	}
 
 	@Override
@@ -85,20 +86,22 @@ public class VolcaniteAmulet extends ItemPE implements IProjectileShooter, IPede
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
-		tooltip.add(PELang.TOOLTIP_VOLCANITE_1.translate(ClientKeyHelper.getKeyName(PEKeybind.FIRE_PROJECTILE)));
-		tooltip.add(PELang.TOOLTIP_VOLCANITE_2.translate());
-		tooltip.add(PELang.TOOLTIP_VOLCANITE_3.translate());
-		tooltip.add(PELang.TOOLTIP_VOLCANITE_4.translate());
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
+		tooltip.accept(PELang.TOOLTIP_VOLCANITE_1.translate(ClientKeyHelper.getKeyName(PEKeybind.FIRE_PROJECTILE)));
+		tooltip.accept(PELang.TOOLTIP_VOLCANITE_2.translate());
+		tooltip.accept(PELang.TOOLTIP_VOLCANITE_3.translate());
+		tooltip.accept(PELang.TOOLTIP_VOLCANITE_4.translate());
 	}
 
 	@Override
 	public <PEDESTAL extends BlockEntity & IDMPedestal> boolean updateInPedestal(@NotNull ItemStack stack, @NotNull Level level, @NotNull BlockPos pos,
 			@NotNull PEDESTAL pedestal) {
-		if (!level.isClientSide && ProjectEConfig.server.cooldown.pedestal.volcanite.get() != -1) {
+		if (!level.isClientSide() && ProjectEConfig.server.cooldown.pedestal.volcanite.get() != -1) {
 			if (pedestal.getActivityCooldown() == 0) {
-				if (level.getLevelData() instanceof ServerLevelData worldInfo) {
+				//26.3 moved the weather flags off LevelData and onto the per level WeatherData saved data.
+				if (level instanceof ServerLevel serverLevel) {
+					WeatherData worldInfo = serverLevel.getWeatherData();
 					worldInfo.setRainTime(0);
 					worldInfo.setThunderTime(0);
 					worldInfo.setRaining(false);

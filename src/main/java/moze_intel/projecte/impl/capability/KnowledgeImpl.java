@@ -65,7 +65,7 @@ public class KnowledgeImpl implements IKnowledgeProvider {
 	}
 
 	protected void fireChangedEvent() {
-		if (player != null && !player.level().isClientSide) {
+		if (player != null && !player.level().isClientSide()) {
 			PlayerKnowledgeChangeEvent.EVENT.invoker().onKnowledgeChange(new PlayerKnowledgeChangeEvent(player));
 		}
 	}

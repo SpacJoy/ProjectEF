@@ -9,7 +9,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import moze_intel.projecte.api.item_handlers.IItemHandler;
@@ -34,7 +34,7 @@ public class MercurialEyeContainer extends PEHandContainer {
 	}
 
 	@Override
-	public void clickPostValidate(int slotId, int button, @NotNull ClickType flag, @NotNull Player player) {
+	public void clickPostValidate(int slotId, int button, @NotNull ContainerInput flag, @NotNull Player player) {
 		Slot slot = tryGetSlot(slotId);
 		if (!(slot instanceof ISlotGhost ghost) || !ghost.tryClear()) {
 			super.clickPostValidate(slotId, button, flag, player);

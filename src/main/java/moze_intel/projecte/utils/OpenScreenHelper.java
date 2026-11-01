@@ -3,7 +3,7 @@ package moze_intel.projecte.utils;
 import java.util.function.Consumer;
 import moze_intel.projecte.gameObjs.registration.impl.ContainerTypeDeferredRegister;
 import moze_intel.projecte.gameObjs.registration.impl.ContainerTypeDeferredRegister.RawScreenData;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -47,8 +47,8 @@ public final class OpenScreenHelper {
 	/**
 	 * Wraps a vanilla MenuProvider into an ExtendedMenuProvider that passes extra data through the Fabric screen handler API.
 	 */
-	private static ExtendedScreenHandlerFactory<RawScreenData> wrapWithScreenData(Player player, MenuProvider provider, Consumer<RegistryFriendlyByteBuf> writer) {
-		return new ExtendedScreenHandlerFactory<>() {
+	private static ExtendedMenuProvider<RawScreenData> wrapWithScreenData(Player player, MenuProvider provider, Consumer<RegistryFriendlyByteBuf> writer) {
+		return new ExtendedMenuProvider<>() {
 			@Override
 			public @NotNull Component getDisplayName() {
 				return provider.getDisplayName();

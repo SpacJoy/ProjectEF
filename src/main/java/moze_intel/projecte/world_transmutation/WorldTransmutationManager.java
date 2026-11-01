@@ -1,10 +1,5 @@
 package moze_intel.projecte.world_transmutation;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.JsonOps;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
@@ -25,7 +20,8 @@ import moze_intel.projecte.api.world_transmutation.WorldTransmutation;
 import moze_intel.projecte.api.world_transmutation.WorldTransmutationFile;
 import moze_intel.projecte.network.packets.to_client.SyncWorldTransmutations;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -35,10 +31,9 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class WorldTransmutationManager extends SimpleJsonResourceReloadListener implements IdentifiableResourceReloadListener {
+//26.3: SimpleJsonResourceReloadListener is generic over the decoded element, and a raw supertype would erase apply to Object
+public class WorldTransmutationManager extends SimpleJsonResourceReloadListener<WorldTransmutationFile> implements IdentifiableResourceReloadListener {
 
-	//Copy of gson settings from RecipeManager's gson instance
-	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 	public static final WorldTransmutationManager INSTANCE = new WorldTransmutationManager();
 	//Note: Assume we will only have one element for it, but allow it to grow if need be
 	private static final Function<Block, SequencedSet<IWorldTransmutation>> SET_BUILDER = origin -> new LinkedHashSet<>(1);
@@ -48,11 +43,12 @@ public class WorldTransmutationManager extends SimpleJsonResourceReloadListener 
 	private Reference2ObjectMap<Block, SequencedSet<IWorldTransmutation>> modifiedEntries = null;
 
 	private WorldTransmutationManager() {
-		super(GSON, "pe_world_transmutations");
+		//26.3 changed SimpleJsonResourceReloadListener to take a codec and a FileToIdConverter instead of a Gson instance
+		super(WorldTransmutationFile.CODEC, FileToIdConverter.json("pe_world_transmutations"));
 	}
 
 	@Override
-	public ResourceLocation getFabricId() {
+	public Identifier getFabricId() {
 		return PECore.rl("world_transmutations");
 	}
 
@@ -67,29 +63,25 @@ public class WorldTransmutationManager extends SimpleJsonResourceReloadListener 
 	}
 
 	@Override
-	protected void apply(@NotNull Map<ResourceLocation, JsonElement> object, @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller profiler) {
+	//26.3: SimpleJsonResourceReloadListener now decodes with the codec itself, so this receives already parsed files
+	protected void apply(@NotNull Map<Identifier, WorldTransmutationFile> object, @NotNull ResourceManager resourceManager, @NotNull ProfilerFiller profiler) {
 		// Fabric resource-conditions-api-v1 handles load conditions at the loader layer (mixin on
 		// SimpleJsonResourceReloadListener) — entries whose "fabric:load_conditions" are not met
 		// are excluded before they reach this method. So we decode directly with CODEC.
 		Reference2ObjectMap<Block, SequencedSet<IWorldTransmutation>> builder = new Reference2ObjectLinkedOpenHashMap<>();
 
 		// Find all data/<domain>/pe_world_transmutations/foo/bar.json
-		for (Entry<ResourceLocation, JsonElement> entry : object.entrySet()) {
-			ResourceLocation file = entry.getKey();//<domain>:foo/bar
-			DataResult<WorldTransmutationFile> result = WorldTransmutationFile.CODEC.parse(JsonOps.INSTANCE, entry.getValue());
-			if (result.isSuccess()) {
-				WorldTransmutationFile decoded = result.getOrThrow();
-				for (IWorldTransmutation transmutation : decoded.transmutations()) {
-					SequencedSet<IWorldTransmutation> transmutations = builder.computeIfAbsent(transmutation.origin().value(), SET_BUILDER);
-					if (transmutations.add(transmutation)) {
-						PECore.debugLog("World Transmutation File: '{}' registered {}", file, transmutation);
-					} else {
-						PECore.debugLog("World Transmutation File: '{}' registered {}. Skipped as it was identical to an already registered transmutation",
-								file, transmutation);
-					}
+		for (Entry<Identifier, WorldTransmutationFile> entry : object.entrySet()) {
+			Identifier file = entry.getKey();//<domain>:foo/bar
+			WorldTransmutationFile decoded = entry.getValue();
+			for (IWorldTransmutation transmutation : decoded.transmutations()) {
+				SequencedSet<IWorldTransmutation> transmutations = builder.computeIfAbsent(transmutation.origin().value(), SET_BUILDER);
+				if (transmutations.add(transmutation)) {
+					PECore.debugLog("World Transmutation File: '{}' registered {}", file, transmutation);
+				} else {
+					PECore.debugLog("World Transmutation File: '{}' registered {}. Skipped as it was identical to an already registered transmutation",
+							file, transmutation);
 				}
-			} else {
-				result.ifError(error -> PECore.LOGGER.error("Parsing error loading world transmutation file {}: {}", file, error.message()));
 			}
 		}
 		for (Iterator<Reference2ObjectMap.Entry<Block, SequencedSet<IWorldTransmutation>>> iterator = Reference2ObjectMaps.fastIterator(builder); iterator.hasNext(); ) {

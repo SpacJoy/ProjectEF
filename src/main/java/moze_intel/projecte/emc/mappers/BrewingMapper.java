@@ -1,10 +1,8 @@
 package moze_intel.projecte.emc.mappers;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import moze_intel.projecte.PECore;
-import moze_intel.projecte.api.ItemInfo;
 import moze_intel.projecte.api.mapper.EMCMapper;
 import moze_intel.projecte.api.mapper.IEMCMapper;
 import moze_intel.projecte.api.mapper.collector.IMappingCollector;
@@ -14,21 +12,24 @@ import moze_intel.projecte.api.nss.NormalizedSimpleStack;
 import moze_intel.projecte.config.PEConfigTranslations;
 import moze_intel.projecte.utils.EMCHelper;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.component.predicates.PotionsPredicate;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.PotionBrewing;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.item.crafting.BrewingInput;
+import net.minecraft.world.item.crafting.BrewingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.PotionIngredient;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
-import org.jetbrains.annotations.Nullable;
 
 @EMCMapper
 public class BrewingMapper implements IEMCMapper<NormalizedSimpleStack, Long> {
@@ -36,15 +37,6 @@ public class BrewingMapper implements IEMCMapper<NormalizedSimpleStack, Long> {
 	@Override
 	public void addMappings(IMappingCollector<NormalizedSimpleStack, Long> mapper, RecipeManager recipeManager,
 			RegistryAccess registryAccess, ResourceManager resourceManager) {
-		MinecraftServer server = PECore.getServer();
-		if (server == null) {
-			PECore.LOGGER.error("Failed to get server and potion data when trying to map potions");
-			return;
-		}
-		PotionBrewing potionBrewing = server.potionBrewing();
-		Set<ItemInfo> allReagents = mapAllReagents(potionBrewing);
-		Set<ItemInfo> allInputs = mapAllInputs(potionBrewing);
-
 		//Add conversion for empty bottle + water to water bottle
 		//Note: NSS fluid amounts are in millibuckets (1 bucket = 1000 mB), so a water bottle holds 1000 / 3 mB of water
 		mapper.addConversion(1, NSSItem.createItem(PotionContents.createItemStack(Items.POTION, Potions.WATER)), EMCHelper.intMapOf(
@@ -53,31 +45,63 @@ public class BrewingMapper implements IEMCMapper<NormalizedSimpleStack, Long> {
 		));
 
 		int recipeCount = 0;
-
-
-		//Check all known valid inputs and reagents to see which ones create valid inputs
-		// Note: Getting the list of outputs while getting reagents will cause things to be missed
-		// As the PotionBrewing class does not contain all valid mappings (For example: Potion of luck + gunpowder -> splash potion of luck)
-		for (ItemInfo inputInfo : allInputs) {
-			ItemStack validInput = inputInfo.createStack();
-			NormalizedSimpleStack nssInput = inputInfo.toNSS();
-			for (ItemInfo reagentInfo : allReagents) {
-				ItemStack output = potionBrewing.mix(reagentInfo.createStack(), validInput);
-				if (!output.isEmpty()) {
+		//26.3 turned brewing into ordinary data driven recipes (RecipeType.BREWING), replacing the hardcoded PotionBrewing
+		//mix lists that used to hang off MinecraftServer. Walking the recipe registry also picks up modded brewing recipes,
+		//and evaluating each input/reagent pair keeps the previous "probe every combination" behaviour.
+		for (RecipeHolder<?> holder : recipeManager.getRecipes()) {
+			if (!(holder.value() instanceof BrewingRecipe recipe)) {
+				continue;
+			}
+			List<ItemStack> inputs = matchingStacks(recipe.getInput());
+			List<ItemStack> reagents = matchingStacks(recipe.getReagent());
+			for (ItemStack input : inputs) {
+				for (ItemStack reagent : reagents) {
+					BrewingInput brewingInput = new BrewingInput(input, reagent);
+					if (!recipe.matches(brewingInput)) {
+						continue;
+					}
+					ItemStack output = recipe.assemble(brewingInput);
+					if (output.isEmpty()) {
+						continue;
+					}
 					//Add the conversion, 3 input + reagent = 3 y output as the output technically could be stacked
 					mapper.addConversion(3 * output.getCount(), NSSItem.createItem(output), EMCHelper.intMapOf(
-							nssInput, 3,
-							reagentInfo.toNSS(), 1
+							NSSItem.createItem(input), 3,
+							NSSItem.createItem(reagent), 1
 					));
 					recipeCount++;
 				}
 			}
 		}
-
-		//Note: Unlike NeoForge, Fabric has no extensible brewing recipe registry; mods add brewing through the vanilla
-		// PotionBrewing mixes, which are already covered by the reagent/input scan above, so there is nothing extra to map.
 		PECore.debugLog("{} Statistics:", getName());
 		PECore.debugLog("Found {} Brewing Recipes", recipeCount);
+	}
+
+	/**
+	 * Expands a potion bound brewing ingredient into every concrete stack it matches, otherwise returns the plain item stacks.
+	 */
+	private static List<ItemStack> matchingStacks(PotionIngredient potionIngredient) {
+		Ingredient ingredient = potionIngredient.ingredient();
+		List<Item> items = ingredient.items().map(Holder::value).toList();
+		PotionsPredicate predicate = potionIngredient.potions().orElse(null);
+		HolderSet<Potion> potions = predicate == null ? null : predicate.potions().orElse(null);
+		if (potions == null) {
+			List<ItemStack> stacks = new ArrayList<>(items.size());
+			for (Item item : items) {
+				stacks.add(new ItemStack(item));
+			}
+			return stacks;
+		}
+		List<ItemStack> stacks = new ArrayList<>(items.size() * potions.size());
+		for (Holder<Potion> potion : potions) {
+			PotionContents contents = new PotionContents(potion);
+			for (Item item : items) {
+				ItemStack stack = new ItemStack(item);
+				stack.set(DataComponents.POTION_CONTENTS, contents);
+				stacks.add(stack);
+			}
+		}
+		return stacks;
 	}
 
 	@Override
@@ -93,54 +117,5 @@ public class BrewingMapper implements IEMCMapper<NormalizedSimpleStack, Long> {
 	@Override
 	public String getDescription() {
 		return PEConfigTranslations.MAPPING_BREWING_MAPPER.tooltip();
-	}
-
-	@Nullable
-	private static ItemStack[] getMatchingStacks(Ingredient ingredient) {
-		try {
-			return ingredient.getItems();
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	private Set<ItemInfo> mapAllReagents(PotionBrewing potionBrewing) {
-		Set<ItemInfo> allReagents = new HashSet<>();
-		addReagents(allReagents, potionBrewing.containerMixes);
-		addReagents(allReagents, potionBrewing.potionMixes);
-		return allReagents;
-	}
-
-	private <T> void addReagents(Set<ItemInfo> allReagents, List<PotionBrewing.Mix<T>> conversions) {
-		for (PotionBrewing.Mix<T> conversion : conversions) {
-			for (ItemStack r : conversion.ingredient().getItems()) {
-				allReagents.add(ItemInfo.fromStack(r));
-			}
-		}
-	}
-
-	private Set<ItemInfo> mapAllInputs(PotionBrewing potionBrewing) {
-		Set<ItemInfo> allInputs = new HashSet<>();
-
-		Set<ItemInfo> inputs = new HashSet<>();
-		for (Ingredient potionItem : potionBrewing.containers) {
-			ItemStack[] matchingStacks = getMatchingStacks(potionItem);
-			if (matchingStacks != null) {
-				//Silently ignore any invalid potion items (ingredients that may be tags) this should never be the case
-				// unless someone ATs the map and inserts a custom ingredient into it, but just in case, don't crash
-				for (ItemStack input : matchingStacks) {
-					inputs.add(ItemInfo.fromStack(input));
-				}
-			}
-		}
-		for (Holder<Potion> potion : BuiltInRegistries.POTION.holders().toList()) {
-			PotionContents contents = new PotionContents(potion);
-			for (ItemInfo input : inputs) {
-				ItemStack stack = input.createStack();
-				stack.set(DataComponents.POTION_CONTENTS, contents);
-				allInputs.add(ItemInfo.fromStack(stack));
-			}
-		}
-		return allInputs;
 	}
 }

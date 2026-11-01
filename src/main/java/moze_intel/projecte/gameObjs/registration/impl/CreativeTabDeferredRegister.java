@@ -6,9 +6,9 @@ import java.util.function.UnaryOperator;
 import moze_intel.projecte.gameObjs.registration.PEDeferredHolder;
 import moze_intel.projecte.gameObjs.registration.PEDeferredRegister;
 import moze_intel.projecte.utils.text.ILangEntry;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
-import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroupEntries;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTabOutput;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
@@ -30,7 +30,7 @@ public class CreativeTabDeferredRegister extends PEDeferredRegister<CreativeMode
 	public void register() {
 		super.register();
 		for (ResourceKey<CreativeModeTab> tabKey : existingTabsToModify) {
-			ItemGroupEvents.modifyEntriesEvent(tabKey).register(entries -> addToExistingTabs.accept(new PETabContents(tabKey, entries)));
+			CreativeModeTabEvents.modifyOutputEvent(tabKey).register(entries -> addToExistingTabs.accept(new PETabContents(tabKey, entries)));
 		}
 	}
 
@@ -46,7 +46,7 @@ public class CreativeTabDeferredRegister extends PEDeferredRegister<CreativeMode
 	 */
 	public PEDeferredHolder<CreativeModeTab, CreativeModeTab> register(String name, ILangEntry title, ItemLike icon, UnaryOperator<CreativeModeTab.Builder> operator) {
 		return register(name, () -> {
-			CreativeModeTab.Builder builder = FabricItemGroup.builder()
+			CreativeModeTab.Builder builder = FabricCreativeModeTab.builder()
 					.title(title.translate())
 					.icon(() -> icon.asItem().getDefaultInstance());
 			return operator.apply(builder).build();
@@ -59,9 +59,9 @@ public class CreativeTabDeferredRegister extends PEDeferredRegister<CreativeMode
 	public static final class PETabContents {
 
 		private final ResourceKey<CreativeModeTab> tabKey;
-		private final FabricItemGroupEntries entries;
+		private final FabricCreativeModeTabOutput entries;
 
-		PETabContents(ResourceKey<CreativeModeTab> tabKey, FabricItemGroupEntries entries) {
+		PETabContents(ResourceKey<CreativeModeTab> tabKey, FabricCreativeModeTabOutput entries) {
 			this.tabKey = tabKey;
 			this.entries = entries;
 		}

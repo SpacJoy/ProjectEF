@@ -1,51 +1,48 @@
 package moze_intel.projecte.rendering;
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat.Mode;
-import java.util.function.Function;
-import net.minecraft.Util;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.resources.Identifier;
 
-public class PERenderType extends RenderType {
+/**
+ * Holds the render types ProjectE needs that vanilla does not expose directly.
+ * <p>
+ * 26.3 replaced the old {@code RenderType.CompositeState}/{@code RenderStateShard} builder with {@link
+ * net.minecraft.client.renderer.rendertype.RenderSetup}, and a {@code RenderType} is now just a thin wrapper over a
+ * {@link com.mojang.renderpearl.api.pipeline.RenderPipeline}. Custom render types can no longer be assembled from
+ * shard constants at runtime, so everything here is expressed through the vanilla {@link RenderTypes} factories:
+ * <ul>
+ *   <li>{@link #sprite} — a plain cutout texture quad, used by {@link EntitySpriteRenderer}.</li>
+ *   <li>{@link #glowingSprite} — a translucent, non-culled textured quad, used by {@link LayerYue}. Only the alpha
+ *   differs from {@link #sprite}, which is what the old hand-rolled POSITION_TEX_COLOR shard pair was for.</li>
+ * </ul>
+ * Both used to be built with a {@code Function<Identifier, RenderType>} memoized cache; the vanilla factories already
+ * cache internally, so the functions are gone and callers resolve the type directly from their texture.
+ */
+public class PERenderType {
 
-	//Ignored
-	private PERenderType(String name, VertexFormat format, Mode drawMode, int bufferSize, boolean useDelegate, boolean needsSorting, Runnable setupTask, Runnable clearTask) {
-		super(name, format, drawMode, bufferSize, useDelegate, needsSorting, setupTask, clearTask);
+	private PERenderType() {
 	}
 
-	public static final RenderStateShard.ShaderStateShard POSITION_TEX_COLOR_SHADER = new RenderStateShard.ShaderStateShard(
-			GameRenderer::getPositionTexColorShader
-	);
+	/**
+	 * Cutout texture quad that ignores lighting entirely.
+	 */
+	public static RenderType sprite(Identifier texture) {
+		return RenderTypes.entityCutout(texture);
+	}
 
-	public static final Function<ResourceLocation, RenderType> SPRITE_RENDERER = Util.memoize(resourceLocation -> {
-		RenderType.CompositeState state = RenderType.CompositeState.builder()
-				.setShaderState(RenderStateShard.POSITION_TEX_SHADER)
-				.setTextureState(new RenderStateShard.TextureStateShard(resourceLocation, false, false))
-				.createCompositeState(true);
-		return create("projecte_sprite_renderer", DefaultVertexFormat.POSITION_TEX, Mode.QUADS, 256, true, false, state);
-	});
+	/**
+	 * Translucent textured quad that is not culled; used for the flat circle decals rendered on top of a player body.
+	 */
+	public static RenderType glowingSprite(Identifier texture) {
+		return RenderTypes.entityTranslucent(texture);
+	}
 
-	public static final Function<ResourceLocation, RenderType> YEU_RENDERER = Util.memoize(resourceLocation -> {
-		RenderType.CompositeState state = RenderType.CompositeState.builder()
-				.setShaderState(POSITION_TEX_COLOR_SHADER)
-				.setTextureState(new RenderStateShard.TextureStateShard(resourceLocation, false, false))
-				.setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-				.setCullState(NO_CULL)
-				.createCompositeState(true);
-		return create("projecte_yeu_renderer", DefaultVertexFormat.POSITION_TEX_COLOR, Mode.QUADS, 256, true, false, state);
-	});
-
-	public static final RenderType TRANSMUTATION_OVERLAY = create("projecte_transmutation_overlay", DefaultVertexFormat.POSITION_COLOR, Mode.QUADS, 256,
-			true, false, RenderType.CompositeState.builder()
-					.setShaderState(POSITION_COLOR_SHADER)
-					.setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-					.setCullState(NO_CULL)
-					.setWriteMaskState(COLOR_WRITE)
-					.setLayeringState(POLYGON_OFFSET_LAYERING)//Offset it so that can render properly
-					.createCompositeState(true)
-	);
+	/**
+	 * Translucent no-cull overlay used to highlight the blocks the philosopher's stone would transmute.
+	 * <p>
+	 * 26.3 lost {@code LevelRenderer#renderFace}, so the geometry is now emitted by hand from {@link
+	 * TransmutationRenderingOverlay}; the render type only has to be a translucent, unlit, non-culled quad type.
+	 */
+	public static final RenderType TRANSMUTATION_OVERLAY = RenderTypes.entityTranslucent(Identifier.withDefaultNamespace("textures/misc/white.png"));
 }

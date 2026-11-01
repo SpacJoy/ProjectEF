@@ -33,7 +33,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -140,7 +140,7 @@ public final class PacketHandler {
 
 	protected record SimplePacketPayLoad(CustomPacketPayload.Type<CustomPacketPayload> type) implements CustomPacketPayload {
 
-		private SimplePacketPayLoad(ResourceLocation id) {
+		private SimplePacketPayLoad(Identifier id) {
 			this(new CustomPacketPayload.Type<>(id));
 		}
 	}
@@ -149,21 +149,21 @@ public final class PacketHandler {
 
 		public <MSG extends IPEPacket> void play(CustomPacketPayload.Type<MSG> type, StreamCodec<? super RegistryFriendlyByteBuf, MSG> reader) {
 			if (toServer) {
-				PayloadTypeRegistry.playC2S().register(type, reader);
+				PayloadTypeRegistry.serverboundPlay().register(type, reader);
 				ServerPlayNetworking.registerGlobalReceiver(type, (payload, context) -> payload.handle(context::player));
 			} else {
-				PayloadTypeRegistry.playS2C().register(type, reader);
+				PayloadTypeRegistry.clientboundPlay().register(type, reader);
 				CLIENTBOUND_REGISTRATIONS.add(new ClientboundRegistration<>(type, IPEPacket::handle));
 			}
 		}
 
-		public SimplePacketPayLoad playInstanced(ResourceLocation id, PEPayloadHandler<CustomPacketPayload> handler) {
+		public SimplePacketPayLoad playInstanced(Identifier id, PEPayloadHandler<CustomPacketPayload> handler) {
 			SimplePacketPayLoad payload = new SimplePacketPayLoad(id);
 			if (toServer) {
-				PayloadTypeRegistry.playC2S().register(payload.type(), StreamCodec.unit(payload));
+				PayloadTypeRegistry.serverboundPlay().register(payload.type(), StreamCodec.unit(payload));
 				ServerPlayNetworking.registerGlobalReceiver(payload.type(), (received, context) -> handler.handle(received, context::player));
 			} else {
-				PayloadTypeRegistry.playS2C().register(payload.type(), StreamCodec.unit(payload));
+				PayloadTypeRegistry.clientboundPlay().register(payload.type(), StreamCodec.unit(payload));
 				CLIENTBOUND_REGISTRATIONS.add(new ClientboundRegistration<>(payload.type(), handler));
 			}
 			return payload;

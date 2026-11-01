@@ -19,7 +19,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -37,29 +37,29 @@ public class Zero extends PEToggleItem implements IPedestalItem, IItemCharge, IB
 	@NotNull
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
-		if (!level.isClientSide && entity instanceof Player player && hotBarOrOffHand(slot) && stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
+		if (!level.isClientSide() && entity instanceof Player player && hotBarOrOffHand(slot) && stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
 			WorldHelper.freezeInBoundingBox(level, player.getBoundingBox().inflate(3), player, true);
 		}
 	}
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(Level level, Player player, @NotNull InteractionHand hand) {
+	public InteractionResult use(Level level, Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			int offset = 3 + this.getCharge(stack);
 			level.playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.POWER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 			WorldHelper.freezeInBoundingBox(level, player.getBoundingBox().inflate(offset), player, false);
 		}
-		return InteractionResultHolder.success(stack);
+		return InteractionResult.SUCCESS;
 	}
 
 	@Override
 	public <PEDESTAL extends BlockEntity & IDMPedestal> boolean updateInPedestal(@NotNull ItemStack stack, @NotNull Level level, @NotNull BlockPos pos,
 			@NotNull PEDESTAL pedestal) {
-		if (!level.isClientSide && ProjectEConfig.server.cooldown.pedestal.zero.get() != -1) {
+		if (!level.isClientSide() && ProjectEConfig.server.cooldown.pedestal.zero.get() != -1) {
 			if (pedestal.getActivityCooldown() == 0) {
 				AABB aabb = pedestal.getEffectBounds();
 				WorldHelper.freezeInBoundingBox(level, aabb, null, false);

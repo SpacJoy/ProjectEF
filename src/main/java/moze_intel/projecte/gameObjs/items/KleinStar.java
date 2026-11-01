@@ -6,7 +6,7 @@ import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.integration.IntegrationHelper;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -48,13 +48,13 @@ public class KleinStar extends ItemPE implements IItemEmcHolder, IBarHelper, ICa
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(Level level, Player player, @NotNull InteractionHand hand) {
+	public InteractionResult use(Level level, Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
-		if (!level.isClientSide && FabricLoader.getInstance().isDevelopmentEnvironment() && player.isCreative()) {
+		if (!level.isClientSide() && FabricLoader.getInstance().isDevelopmentEnvironment() && player.isCreative()) {
 			stack.set(PEDataComponentTypes.STORED_EMC.get(), getMaximumEmc(stack));
-			return InteractionResultHolder.success(stack);
+			return InteractionResult.SUCCESS;
 		}
-		return InteractionResultHolder.pass(stack);
+		return InteractionResult.PASS;
 	}
 
 	public enum KleinTier {

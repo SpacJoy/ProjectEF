@@ -19,7 +19,6 @@ import moze_intel.projecte.gameObjs.items.rings.Arcana.ArcanaMode;
 import moze_intel.projecte.gameObjs.registries.PEArmorMaterials;
 import moze_intel.projecte.gameObjs.registries.PEAttachmentTypes;
 import moze_intel.projecte.gameObjs.registries.PEBlockEntityTypes;
-import moze_intel.projecte.gameObjs.registries.PEBlockTypes;
 import moze_intel.projecte.gameObjs.registries.PEBlocks;
 import moze_intel.projecte.gameObjs.registries.PEContainerTypes;
 import moze_intel.projecte.gameObjs.registries.PECreativeTabs;
@@ -56,7 +55,6 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
-import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidVariant;
@@ -73,13 +71,13 @@ import net.minecraft.core.dispenser.DefaultDispenseItemBehavior;
 import net.minecraft.core.dispenser.DispenseItemBehavior;
 import net.minecraft.core.dispenser.OptionalDispenseItemBehavior;
 import net.minecraft.core.dispenser.ShearsDispenseItemBehavior;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
@@ -128,8 +126,8 @@ public class PECore implements ModInitializer {
 		}
 	}
 
-	public static ResourceLocation rl(String path) {
-		return ResourceLocation.fromNamespaceAndPath(MODID, path);
+	public static Identifier rl(String path) {
+		return Identifier.fromNamespaceAndPath(MODID, path);
 	}
 
 	private static PECore instance;
@@ -166,10 +164,12 @@ public class PECore implements ModInitializer {
 		PEAttachmentTypes.init();
 		PESoundEvents.SOUND_EVENTS.register();
 		PEDataComponentTypes.DATA_COMPONENT_TYPES.register();
-		PEArmorMaterials.ARMOR_MATERIALS.register();
-		PEBlockTypes.BLOCK_TYPES.register();
+		//26.3: armor_material is no longer a registry; PEArmorMaterials now only holds static ArmorMaterial values.
+		//26.3 also dropped the block_type registry (and Block#codec with it), so PEBlockTypes is gone entirely.
 		PEBlocks.BLOCKS.register();
 		PEItems.ITEMS.register();
+		//26.3 only binds an item's registry holder during registration, so self references are wired up afterwards
+		PhilosophersStone.initCraftingRemainder();
 		PEBlockEntityTypes.BLOCK_ENTITY_TYPES.register();
 		PEContainerTypes.CONTAINER_TYPES.register();
 		PEEntityTypes.ENTITY_TYPES.register();
@@ -185,7 +185,7 @@ public class PECore implements ModInitializer {
 		//Reload listeners: track when server data (recipes and friends) change so that we recalculate EMC values
 		ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
 			@Override
-			public net.minecraft.resources.ResourceLocation getFabricId() {
+			public net.minecraft.resources.Identifier getFabricId() {
 				return rl("emc_update_tracker");
 			}
 
@@ -218,12 +218,11 @@ public class PECore implements ModInitializer {
 	}
 
 	private void registerCapabilities() {
-		PECapabilities.ALCH_BAG_CAPABILITY.registerForType((player, context) -> new AlchBagImpl(player), EntityType.PLAYER);
-		PECapabilities.KNOWLEDGE_CAPABILITY.registerForType((player, context) -> new KnowledgeImpl(player), EntityType.PLAYER);
+		PECapabilities.ALCH_BAG_CAPABILITY.registerForType((player, context) -> new AlchBagImpl(player), EntityTypes.PLAYER);
+		PECapabilities.KNOWLEDGE_CAPABILITY.registerForType((player, context) -> new KnowledgeImpl(player), EntityTypes.PLAYER);
 	}
 
 	private void commonSetup() {
-		registerFurnaceFuels();
 		if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
 			new ThreadCheckUpdate().start();
 		}
@@ -266,7 +265,7 @@ public class PECore implements ModInitializer {
 					if (state.getBlock() instanceof ProjectETNT petnt) {
 						petnt.createAndAddEntity(level, pos, null);
 					} else {
-						TntBlock.explode(level, pos);
+						TntBlock.prime(level, pos);
 					}
 					level.removeBlock(pos, false);
 				} else {
@@ -299,19 +298,6 @@ public class PECore implements ModInitializer {
 		});
 	}
 
-	private static void registerFurnaceFuels() {
-		//Keep the burn times from the former NeoForge furnace fuel data map.
-		int alchemicalCoal = 1_600 * 4;
-		int mobiusFuel = alchemicalCoal * 4;
-		int aeternalisFuel = mobiusFuel * 4;
-		FuelRegistry fuels = FuelRegistry.INSTANCE;
-		fuels.add(PEItems.ALCHEMICAL_COAL.get(), alchemicalCoal);
-		fuels.add(PEBlocks.ALCHEMICAL_COAL.asItem(), alchemicalCoal * 9);
-		fuels.add(PEItems.MOBIUS_FUEL.get(), mobiusFuel);
-		fuels.add(PEBlocks.MOBIUS_FUEL.asItem(), mobiusFuel * 9);
-		fuels.add(PEItems.AETERNALIS_FUEL.get(), aeternalisFuel);
-		fuels.add(PEBlocks.AETERNALIS_FUEL.asItem(), aeternalisFuel * 9);
-	}
 
 	private static boolean canDispenseIgnite(ItemStack stack) {
 		if (stack.is(PEItems.IGNITION_RING.get())) {
@@ -328,7 +314,7 @@ public class PECore implements ModInitializer {
 
 	private void dataPackSync(ServerPlayer player, boolean joined) {
 		if (emcUpdateResourceManager != null) {
-			MinecraftServer server = player.getServer();
+			MinecraftServer server = player.level().getServer();
 			if (server != null) {
 				long start = System.currentTimeMillis();
 				//Clear the cached created tags

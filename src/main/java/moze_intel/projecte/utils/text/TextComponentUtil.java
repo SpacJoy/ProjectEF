@@ -49,12 +49,13 @@ public class TextComponentUtil {
 				case ClickEvent event -> cachedStyle = cachedStyle.withClickEvent(event);
 				case HoverEvent event -> cachedStyle = cachedStyle.withHoverEvent(event);
 				case Block block -> current = block.getName().copy();
-				case Item item -> current = item.getDescription().copy();
+				//26.3 removed Item#getDescription; the name needs a stack to resolve components
+				case Item item -> current = new ItemStack(item).getHoverName().copy();
 				case ItemStack stack -> current = stack.getHoverName().copy();
 				case FluidVariant variant -> current = FluidVariantAttributes.getName(variant).copy();
 				case Fluid fluid -> current = FluidVariantAttributes.getName(FluidVariant.of(fluid)).copy();
 				case EntityType<?> entityType -> current = entityType.getDescription().copy();
-				case Level level -> current = Component.literal(level.dimension().location().toString()).copy();
+				case Level level -> current = Component.literal(level.dimension().identifier().toString()).copy();
 				//Fallback to a generic replacement
 				// this handles strings, numbers, and any type we don't necessarily know about
 				default -> current = getString(component.toString());
@@ -120,7 +121,7 @@ public class TextComponentUtil {
 			} else if (component instanceof Block block) {
 				current = block.getName().copy();
 			} else if (component instanceof Item item) {
-				current = item.getDescription().copy();
+				current = new ItemStack(item).getHoverName().copy();
 			} else if (component instanceof ItemStack stack) {
 				current = stack.getHoverName().copy();
 			} else if (component instanceof FluidVariant variant) {
@@ -130,7 +131,7 @@ public class TextComponentUtil {
 			} else if (component instanceof EntityType<?> entityType) {
 				current = entityType.getDescription().copy();
 			} else if (component instanceof Level level) {
-				current = Component.literal(level.dimension().location().toString()).copy();
+				current = Component.literal(level.dimension().identifier().toString()).copy();
 			}
 			//Formatting
 			else if (component instanceof TextColor color && cachedStyle.getColor() == null) {

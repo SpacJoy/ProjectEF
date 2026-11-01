@@ -24,7 +24,7 @@ public class BlockDeferredRegister extends DoubleDeferredRegister<Block, Item> {
 	}
 
 	public <BLOCK extends Block> BlockRegistryObject<BLOCK, BlockItem> register(String name, Supplier<? extends BLOCK> blockSupplier) {
-		return register(name, blockSupplier, block -> new BlockItem(block, new Item.Properties()));
+		return register(name, blockSupplier, block -> new BlockItem(block, new Item.Properties().useBlockDescriptionPrefix()));
 	}
 
 	public <BLOCK extends Block, WALL_BLOCK extends Block> WallOrFloorBlockRegistryObject<BLOCK, WALL_BLOCK, StandingAndWallBlockItem> registerWallOrFloorItem(String name,
@@ -32,9 +32,11 @@ public class BlockDeferredRegister extends DoubleDeferredRegister<Block, Item> {
 			BlockBehaviour.Properties baseProperties) {
 		PEDeferredHolder<Block, BLOCK> primaryObject = primaryRegister.register(name, () -> blockSupplier.apply(baseProperties));
 		//Note: By the time the wall block's factory runs during registration, the floor block has already been registered, so we can safely access it
-		PEDeferredHolder<Block, WALL_BLOCK> wallObject = primaryRegister.register("wall_" + name, () -> wallBlockSupplier.apply(baseProperties.dropsLike(primaryObject.get())));
+		//26.3 dropped Properties#dropsLike; the wall block keeps its own loot table instead of borrowing the floor block one
+		PEDeferredHolder<Block, WALL_BLOCK> wallObject = primaryRegister.register("wall_" + name, () -> wallBlockSupplier.apply(baseProperties));
 		return new WallOrFloorBlockRegistryObject<>(primaryObject, wallObject, secondaryRegister.register(name, () -> new StandingAndWallBlockItem(primaryObject.get(), wallObject.get(),
-				new Item.Properties(), Direction.DOWN)));
+				//26.3 moved the attachment direction ahead of the item properties
+				Direction.DOWN, new Item.Properties().useBlockDescriptionPrefix())));
 	}
 
 	public <BLOCK extends Block, ITEM extends BlockItem> BlockRegistryObject<BLOCK, ITEM> register(String name, Supplier<? extends BLOCK> blockSupplier,

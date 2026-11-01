@@ -30,7 +30,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
@@ -59,9 +59,9 @@ public class GemEternalDensity extends ItemPE implements IAlchBagItem, IAlchChes
 	}
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
-		if (!level.isClientSide && entity instanceof Player player) {
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
+		if (!level.isClientSide() && entity instanceof Player player) {
 			condense(stack, new PlayerMainInvWrapper(player.getInventory()));
 		}
 	}
@@ -170,9 +170,9 @@ public class GemEternalDensity extends ItemPE implements IAlchBagItem, IAlchChes
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(Level level, Player player, @NotNull InteractionHand hand) {
+	public InteractionResult use(Level level, Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			if (player.isSecondaryUseActive()) {
 				if (stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
 					GemData oldData = stack.update(PEDataComponentTypes.GEM_DATA.get(), GemData.EMPTY, GemData::clearConsumed);
@@ -185,14 +185,14 @@ public class GemEternalDensity extends ItemPE implements IAlchBagItem, IAlchChes
 					stack.set(PEDataComponentTypes.ACTIVE.get(), true);
 				}
 			} else {
-				int selected = player.getInventory().selected;
+				int selected = player.getInventory().getSelectedSlot();
 				OpenScreenHelper.openMenuWithData(player, new ContainerProvider(hand, selected), buf -> {
 					buf.writeEnum(hand);
 					buf.writeByte(selected);
 				});
 			}
 		}
-		return InteractionResultHolder.success(stack);
+		return InteractionResult.SUCCESS;
 	}
 
 	@Override
@@ -211,19 +211,19 @@ public class GemEternalDensity extends ItemPE implements IAlchBagItem, IAlchChes
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
 		Component interact = Component.keybind("key.use");
-		tooltip.add(PELang.TOOLTIP_GEM_DENSITY_1.translate());
-		tooltip.add(PELang.TOOLTIP_GEM_DENSITY_2.translate(getMode(stack)));
-		tooltip.add(PELang.TOOLTIP_GEM_DENSITY_3.translate(ClientKeyHelper.getKeyName(PEKeybind.MODE)));
-		tooltip.add(PELang.TOOLTIP_GEM_DENSITY_4.translate(interact));
-		tooltip.add(PELang.TOOLTIP_GEM_DENSITY_5.translate(Component.keybind("key.sneak"), interact));
+		tooltip.accept(PELang.TOOLTIP_GEM_DENSITY_1.translate());
+		tooltip.accept(PELang.TOOLTIP_GEM_DENSITY_2.translate(getMode(stack)));
+		tooltip.accept(PELang.TOOLTIP_GEM_DENSITY_3.translate(ClientKeyHelper.getKeyName(PEKeybind.MODE)));
+		tooltip.accept(PELang.TOOLTIP_GEM_DENSITY_4.translate(interact));
+		tooltip.accept(PELang.TOOLTIP_GEM_DENSITY_5.translate(Component.keybind("key.sneak"), interact));
 	}
 
 	@Override
 	public boolean updateInAlchChest(@NotNull Level level, @NotNull BlockPos pos, @NotNull ItemStack stack) {
-		if (!level.isClientSide && stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
+		if (!level.isClientSide() && stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false)) {
 			IItemHandler handler = WorldHelper.getItemHandler(level, pos, null);
 			return handler != null && condense(stack, handler);
 		}
@@ -232,7 +232,7 @@ public class GemEternalDensity extends ItemPE implements IAlchBagItem, IAlchChes
 
 	@Override
 	public boolean updateInAlchBag(@NotNull IItemHandler inv, @NotNull Player player, @NotNull ItemStack stack) {
-		return !player.level().isClientSide && condense(stack, inv);
+		return !player.level().isClientSide() && condense(stack, inv);
 	}
 
 	@Override
@@ -246,7 +246,7 @@ public class GemEternalDensity extends ItemPE implements IAlchBagItem, IAlchChes
 		@Override
 		public AbstractContainerMenu createMenu(int windowId, @NotNull Inventory playerInventory, @NotNull Player player) {
 			if (PEHandContainer.getStack(playerInventory, hand, selected).getItem() instanceof GemEternalDensity) {
-				return new EternalDensityContainer(windowId, playerInventory, hand, playerInventory.selected);
+				return new EternalDensityContainer(windowId, playerInventory, hand, playerInventory.getSelectedSlot());
 			}
 			return null;
 		}

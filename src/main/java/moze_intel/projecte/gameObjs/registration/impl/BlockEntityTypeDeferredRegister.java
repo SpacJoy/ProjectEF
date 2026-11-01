@@ -142,7 +142,9 @@ public class BlockEntityTypeDeferredRegister extends PEDeferredRegister<BlockEnt
 		@SuppressWarnings("ConstantConditions")
 		public BlockEntityTypeRegistryObject<BE> build() {
 			//Note: There is no data fixer type as there is not a way of exposing data fixers to mods yet
-			BlockEntityTypeRegistryObject<BE> holder = registerPE(block.getName(), () -> BlockEntityType.Builder.<BE>of(factory, block.getBlocks()).build(null));
+			//26.3 removed BlockEntityType$Builder; the constructor now takes the supplier and the block set directly
+			BlockEntityTypeRegistryObject<BE> holder = registerPE(block.getName(),
+					() -> new BlockEntityType<>(factory, java.util.Set.of(block.getBlocks())));
 			holder.tickers(clientTicker, serverTicker);
 			holder.capabilities(capabilityProviders.isEmpty() ? null : capabilityProviders);
 			return holder;

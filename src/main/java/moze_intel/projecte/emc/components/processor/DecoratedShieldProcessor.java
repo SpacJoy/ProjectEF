@@ -11,6 +11,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.BannerBlock;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Range;
@@ -47,7 +48,8 @@ public class DecoratedShieldProcessor implements IDataComponentProcessor {
 		if (info.getItem().is(ConventionalItemTags.SHIELD_TOOLS)) {
 			DyeColor baseColor = info.getOrNull(DataComponents.BASE_COLOR);
 			if (baseColor != null) {
-				ItemStack banner = new ItemStack(BannerBlock.byColor(baseColor));
+				//26.3 removed BannerBlock#byColor; the coloured banners now live in the Blocks.BANNER colour collection
+				ItemStack banner = new ItemStack(Blocks.BANNER.pick(baseColor));
 				BannerPatternLayers patternLayers = info.getOrNull(DataComponents.BANNER_PATTERNS);
 				if (patternLayers != null && !patternLayers.equals(BannerPatternLayers.EMPTY)) {
 					//If there is any pattern stored, set it so that we can get the value of the banner when it has that pattern stored

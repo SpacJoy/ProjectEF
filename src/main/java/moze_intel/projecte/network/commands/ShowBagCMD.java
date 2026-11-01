@@ -106,11 +106,13 @@ public class ShowBagCMD {
 	private static MenuProvider createContainer(MinecraftServer server, ServerPlayer sender, UUID target, DyeColor color) throws CommandSyntaxException {
 		//Try to get the bag
 		IItemHandlerModifiable inv = loadOfflineBag(server, target, color);
-		Component name = PEItems.getBag(color).getDescription();
-		Optional<GameProfile> profileByUUID = server.getProfileCache() == null ? Optional.empty() : server.getProfileCache().get(target);
+		//26.3 removed Item#getDescription; the plain item name comes off a default stack instead
+		Component name = PEItems.getBag(color).getName(PEItems.getBagReference(color).asStack());
+		//26.3 removed MinecraftServer#getProfileCache; profiles are resolved through the services bundle now
+		Optional<GameProfile> profileByUUID = server.services().profileResolver().fetchById(target);
 		if (profileByUUID.isPresent()) {
 			//If we have a cache of the player, include their last known name in the name of the bag
-			name = PELang.SHOWBAG_NAMED.translate(name, profileByUUID.get().getName());
+			name = PELang.SHOWBAG_NAMED.translate(name, profileByUUID.get().name());
 		}
 		return getContainer(sender, name, inv, true, () -> true);
 	}
@@ -142,9 +144,10 @@ public class ShowBagCMD {
 		if (Files.exists(player) && Files.isRegularFile(player)) {
 			try (InputStream in = Files.newInputStream(player)) {
 				CompoundTag playerDat = NbtIo.readCompressed(in, NbtAccounter.unlimitedHeap());
-				if (playerDat.contains(AttachmentTarget.NBT_ATTACHMENT_KEY, Tag.TAG_COMPOUND)) {
-					CompoundTag attachmentData = playerDat.getCompound(AttachmentTarget.NBT_ATTACHMENT_KEY);
-					CompoundTag bagData = attachmentData.getCompound(PEAttachmentTypes.ALCHEMICAL_BAGS.identifier().toString());
+				//26.3 dropped the type-checking overload of CompoundTag#contains, and getCompound now returns an Optional
+				Optional<CompoundTag> attachmentData = playerDat.getCompound(AttachmentTarget.NBT_ATTACHMENT_KEY);
+				if (attachmentData.isPresent()) {
+					CompoundTag bagData = attachmentData.get().getCompoundOrEmpty(PEAttachmentTypes.ALCHEMICAL_BAGS.identifier().toString());
 					RegistryOps<Tag> serializationContext = server.registryAccess().createSerializationContext(NbtOps.INSTANCE);
 					DataResult<AlchemicalBagAttachment> result = AlchemicalBagAttachment.CODEC.parse(serializationContext, bagData);
 					if (result.isSuccess()) {

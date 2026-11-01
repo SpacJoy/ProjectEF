@@ -17,18 +17,21 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 
-public class PESword extends SwordItem implements IExtraFunction, IItemCharge, IBarHelper, IHasConditionalAttributes, IEnchantableEquipment {
+public class PESword extends net.minecraft.world.item.Item implements IExtraFunction, IItemCharge, IBarHelper, IHasConditionalAttributes, IEnchantableEquipment {
 
 	private final IMatterType matterType;
 	private final int numCharges;
 
+	/**
+	 * 26.3 deleted {@code SwordItem}: the weapon component and attack modifiers are produced by
+	 * {@code Item.Properties#sword} from the matter's {@link net.minecraft.world.item.ToolMaterial}.
+	 */
 	public PESword(IMatterType matterType, int numCharges, int damage, Properties props) {
-		super(matterType, props.attributes(createAttributes(matterType, damage, -2.4F))
+		super(matterType.applySword(props, damage, -2.4F)
 				.component(PEDataComponentTypes.CHARGE.get(), 0)
 				.component(PEDataComponentTypes.STORED_EMC.get(), 0L)
 		);
@@ -68,9 +71,9 @@ public class PESword extends SwordItem implements IExtraFunction, IItemCharge, I
 	}
 
 	@Override
-	public boolean hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity damaged, @NotNull LivingEntity damager) {
+	//26.3 changed Item#hurtEnemy to return void
+	public void hurtEnemy(@NotNull ItemStack stack, @NotNull LivingEntity damaged, @NotNull LivingEntity damager) {
 		ToolHelper.attackWithCharge(stack, damaged, damager, 1.0F);
-		return true;
 	}
 
 	@NotNull

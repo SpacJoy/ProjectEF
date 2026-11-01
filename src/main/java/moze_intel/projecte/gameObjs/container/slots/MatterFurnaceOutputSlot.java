@@ -48,7 +48,8 @@ public class MatterFurnaceOutputSlot extends InventoryContainerSlot {
 
 	@Override
 	protected void checkTakeAchievements(ItemStack stack) {
-		stack.onCraftedBy(player.level(), player, removeCount);
+		//26.3 dropped the Level argument from ItemStack#onCraftedBy
+		stack.onCraftedBy(player, removeCount);
 		if (player instanceof ServerPlayer serverPlayer) {
 			furnace.awardUsedRecipesAndPopExperience(serverPlayer);
 		}

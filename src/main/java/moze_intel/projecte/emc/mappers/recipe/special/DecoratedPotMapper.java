@@ -20,17 +20,19 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.DecoratedPotRecipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.block.entity.PotDecorations;
 
 //@RecipeTypeMapper//TODO: Evaluate if we want to eventually move from the component processor to just premapping values for all pots
 public class DecoratedPotMapper extends SpecialRecipeMapper<DecoratedPotRecipe> {
 
-	private static final ResourceLocation DECORATED_POT = BuiltInRegistries.ITEM.getKey(Items.DECORATED_POT);
+	private static final Identifier DECORATED_POT = BuiltInRegistries.ITEM.getKey(Items.DECORATED_POT);
 
 	@Override
 	protected Class<DecoratedPotRecipe> getRecipeClass() {
@@ -38,8 +40,9 @@ public class DecoratedPotMapper extends SpecialRecipeMapper<DecoratedPotRecipe> 
 	}
 
 	@Override
-	protected boolean handleRecipe(IMappingCollector<NormalizedSimpleStack, Long> mapper, RegistryAccess registryAccess, INSSFakeGroupManager fakeGroupManager) {
-		Optional<Named<Item>> tag = BuiltInRegistries.ITEM.getTag(ItemTags.DECORATED_POT_INGREDIENTS);
+	protected boolean handleMatchingRecipe(IMappingCollector<NormalizedSimpleStack, Long> mapper, RecipeHolder<?> recipeHolder, RegistryAccess registryAccess,
+			INSSFakeGroupManager fakeGroupManager) {
+		Optional<Named<Item>> tag = ((net.minecraft.core.HolderGetter<net.minecraft.world.item.Item>) BuiltInRegistries.ITEM).get(ItemTags.DECORATED_POT_INGREDIENTS);
 		if (tag.isEmpty()) {
 			return false;
 		}
@@ -57,7 +60,13 @@ public class DecoratedPotMapper extends SpecialRecipeMapper<DecoratedPotRecipe> 
 			for (IngredientData left : ingredientData) {
 				for (IngredientData right : ingredientData) {
 					for (IngredientData front : ingredientData) {
-						PotDecorations decorations = new PotDecorations(back.item(), left.item(), right.item(), front.item());
+						//26.3: PotDecorations now stores Optional<ItemStackTemplate> per side instead of raw items
+						PotDecorations decorations = new PotDecorations(
+								Optional.of(new ItemStackTemplate(back.item())),
+								Optional.of(new ItemStackTemplate(left.item())),
+								Optional.of(new ItemStackTemplate(right.item())),
+								Optional.of(new ItemStackTemplate(front.item()))
+						);
 						NSSItem nssDecorated = createDecoratedPotItem(decorations);
 						//Batch known inputs into a single calculation pass by using a fake group
 						Object2IntMap<NormalizedSimpleStack> nssIngredients = getIngredients(back.nss(), left.nss(), right.nss(), front.nss());

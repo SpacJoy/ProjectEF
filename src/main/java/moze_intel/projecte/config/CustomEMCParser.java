@@ -108,7 +108,7 @@ public final class CustomEMCParser {
 		}
 		List<NSSItem> toRemove = new ArrayList<>();
 		for (NSSItem item : currentEntries.entries().keySet()) {
-			if (!item.representsTag() && item.getResourceLocation().getNamespace().equals(namespace)) {
+			if (!item.representsTag() && item.getIdentifier().getNamespace().equals(namespace)) {
 				toRemove.add(item);
 			}
 		}

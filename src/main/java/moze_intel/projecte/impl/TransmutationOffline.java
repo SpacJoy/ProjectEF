@@ -64,9 +64,10 @@ public class TransmutationOffline {
 		if (Files.exists(player) && Files.isRegularFile(player)) {
 			try (InputStream in = Files.newInputStream(player)) {
 				CompoundTag playerDat = NbtIo.readCompressed(in, NbtAccounter.unlimitedHeap()); // No need to create buffered stream, that call does it for us
-				if (playerDat.contains(AttachmentTarget.NBT_ATTACHMENT_KEY, Tag.TAG_COMPOUND)) {
-					CompoundTag attachmentData = playerDat.getCompound(AttachmentTarget.NBT_ATTACHMENT_KEY);
-					CompoundTag knowledgeData = attachmentData.getCompound(PEAttachmentTypes.KNOWLEDGE.identifier().toString());
+				//26.3 dropped the type-checking overload of CompoundTag#contains, and getCompound now returns an Optional
+				CompoundTag attachmentData = playerDat.getCompoundOrEmpty(AttachmentTarget.NBT_ATTACHMENT_KEY);
+				if (!attachmentData.isEmpty()) {
+					CompoundTag knowledgeData = attachmentData.getCompoundOrEmpty(PEAttachmentTypes.KNOWLEDGE.identifier().toString());
 					RegistryOps<Tag> serializationContext = server.registryAccess().createSerializationContext(NbtOps.INSTANCE);
 					DataResult<KnowledgeAttachment> result = KnowledgeAttachment.CODEC.parse(serializationContext, knowledgeData);
 					if (result.isSuccess()) {

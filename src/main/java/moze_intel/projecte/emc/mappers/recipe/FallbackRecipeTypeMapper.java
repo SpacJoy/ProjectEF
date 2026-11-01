@@ -1,5 +1,6 @@
 package moze_intel.projecte.emc.mappers.recipe;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import moze_intel.projecte.api.mapper.collector.IMappingCollector;
@@ -15,8 +16,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleItemRecipe;
-import net.minecraft.world.item.crafting.SmithingTransformRecipe;
-import net.minecraft.world.item.crafting.SmithingTrimRecipe;
+import net.minecraft.world.item.crafting.SmithingRecipe;
 
 @RecipeTypeMapper(priority = Integer.MIN_VALUE)
 public class FallbackRecipeTypeMapper extends BaseRecipeTypeMapper {
@@ -45,9 +45,7 @@ public class FallbackRecipeTypeMapper extends BaseRecipeTypeMapper {
 	@Override
 	public boolean handleRecipe(IMappingCollector<NormalizedSimpleStack, Long> mapper, RecipeHolder<?> recipeHolder, RegistryAccess registryAccess, INSSFakeGroupManager fakeGroupManager) {
 		Recipe<?> recipe = recipeHolder.value();
-		if (recipe instanceof CraftingRecipe || recipe instanceof AbstractCookingRecipe || recipe instanceof SingleItemRecipe ||
-			//Note: We may be able to do SmithingRecipe instead of checking these two subtypes, but we likely won't be able to retrieve the ingredients
-			recipe instanceof SmithingTransformRecipe || recipe instanceof SmithingTrimRecipe) {
+		if (recipe instanceof CraftingRecipe || recipe instanceof AbstractCookingRecipe || recipe instanceof SingleItemRecipe || recipe instanceof SmithingRecipe) {
 			return super.handleRecipe(mapper, recipeHolder, registryAccess, fakeGroupManager);
 		}
 		return false;
@@ -57,12 +55,14 @@ public class FallbackRecipeTypeMapper extends BaseRecipeTypeMapper {
 	protected Collection<Ingredient> getIngredients(Recipe<?> recipe) {
 		Collection<Ingredient> ingredients = super.getIngredients(recipe);
 		if (ingredients.isEmpty()) {
-			//If the extension of upgrade recipe doesn't override getIngredients (just like vanilla doesn't)
+			//If the extension of upgrade recipe doesn't provide the ingredients via PlacementInfo
 			// grab the values from the recipe's object itself
-			if (recipe instanceof SmithingTransformRecipe transformRecipe) {
-				return List.of(transformRecipe.base, transformRecipe.addition, transformRecipe.template);
-			} else if (recipe instanceof SmithingTrimRecipe trimRecipe) {
-				return List.of(trimRecipe.base, trimRecipe.addition, trimRecipe.template);
+			if (recipe instanceof SmithingRecipe smithingRecipe) {
+				List<Ingredient> smithingIngredients = new ArrayList<>(3);
+				smithingIngredients.add(smithingRecipe.baseIngredient());
+				smithingRecipe.additionIngredient().ifPresent(smithingIngredients::add);
+				smithingRecipe.templateIngredient().ifPresent(smithingIngredients::add);
+				return smithingIngredients;
 			}
 		}
 		return ingredients;

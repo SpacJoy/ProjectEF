@@ -41,18 +41,20 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Explosion;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.attribute.EnvironmentAttributes;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.AttachedStemBlock;
 import net.minecraft.world.level.block.BambooStalkBlock;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BaseFireBlock;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.CandleCakeBlock;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BonemealSource;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.BucketPickup;
 import net.minecraft.world.level.block.BushBlock;
@@ -64,16 +66,15 @@ import net.minecraft.world.level.block.GrowingPlantBlock;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.level.block.LiquidBlockContainer;
-import net.minecraft.world.level.block.MossBlock;
 import net.minecraft.world.level.block.NyliumBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.StemBlock;
 import net.minecraft.world.level.block.SugarCaneBlock;
 import net.minecraft.world.level.block.TntBlock;
 import net.minecraft.world.level.block.VineBlock;
-import net.minecraft.world.level.block.WaterlilyBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
@@ -197,11 +198,11 @@ public final class WorldHelper {
 	 */
 	public static void createNovaExplosion(Level level, Entity exploder, double x, double y, double z, float power) {
 		if (level instanceof ServerLevel serverLevel) {
-			Explosion.BlockInteraction mode = level.getGameRules().getBoolean(GameRules.RULE_TNT_EXPLOSION_DROP_DECAY) ? Explosion.BlockInteraction.DESTROY_WITH_DECAY : Explosion.BlockInteraction.DESTROY;
-			NovaExplosion explosion = new NovaExplosion(level, exploder, x, y, z, power, mode);
-			explosion.explode();
-			List<BlockPos> particlePositions = explosion.finalizeExplosion();
-			NovaExplosionSyncPKT packet = new NovaExplosionSyncPKT(explosion.center(), explosion.radius(), explosion.getExplosionSound(), particlePositions);
+			//26.3: gamerules moved to net.minecraft.world.level.gamerules and are only reachable from a ServerLevel
+			Explosion.BlockInteraction mode = serverLevel.getGameRules().get(GameRules.TNT_EXPLOSION_DROP_DECAY) ? Explosion.BlockInteraction.DESTROY_WITH_DECAY : Explosion.BlockInteraction.DESTROY;
+			NovaExplosion explosion = new NovaExplosion(serverLevel, exploder, new Vec3(x, y, z), power, mode);
+			List<BlockPos> particlePositions = explosion.explode();
+			NovaExplosionSyncPKT packet = new NovaExplosionSyncPKT(explosion.center(), explosion.radius(), SoundEvents.GENERIC_EXPLODE, particlePositions);
 			for (ServerPlayer player : serverLevel.players()) {
 				//Based on ServerLevel#explode's range check
 				if (player.distanceToSqr(x, y, z) < 4_096.0) {
@@ -245,7 +246,7 @@ public final class WorldHelper {
 			BlockState state = level.getBlockState(pos);
 			//Ensure we are immutable so that changing blocks doesn't act weird
 			pos = pos.immutable();
-			if (state.is(Blocks.WATER) && (!random || level.random.nextInt(128) == 0)) {
+			if (state.is(Blocks.WATER) && (!random || level.getRandom().nextInt(128) == 0)) {
 				if (player != null) {
 					PlayerHelper.checkedReplaceBlock((ServerPlayer) player, level, pos, Blocks.ICE.defaultBlockState());
 				} else {
@@ -256,9 +257,9 @@ public final class WorldHelper {
 				BlockState stateUp = level.getBlockState(up);
 				BlockState newState = null;
 
-				if (stateUp.isAir() && (!random || level.random.nextInt(128) == 0)) {
+				if (stateUp.isAir() && (!random || level.getRandom().nextInt(128) == 0)) {
 					newState = Blocks.SNOW.defaultBlockState();
-				} else if (stateUp.is(Blocks.SNOW) && stateUp.getValue(SnowLayerBlock.LAYERS) < SnowLayerBlock.MAX_HEIGHT && level.random.nextInt(Block.UPDATE_LIMIT) == 0) {
+				} else if (stateUp.is(Blocks.SNOW) && stateUp.getValue(SnowLayerBlock.LAYERS) < SnowLayerBlock.MAX_HEIGHT && level.getRandom().nextInt(Block.UPDATE_LIMIT) == 0) {
 					newState = stateUp.setValue(SnowLayerBlock.LAYERS, stateUp.getValue(SnowLayerBlock.LAYERS) + 1);
 				}
 				if (newState != null) {
@@ -300,8 +301,8 @@ public final class WorldHelper {
 	 */
 	public static void placeFluid(@Nullable Player player, Level level, BlockPos pos, FlowingFluid fluid, boolean checkWaterVaporize) {
 		BlockState blockState = level.getBlockState(pos);
-		if (checkWaterVaporize && level.dimensionType().ultraWarm() && fluid.is(FluidTags.WATER)) {
-			level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 2.6F + (level.random.nextFloat() - level.random.nextFloat()) * 0.8F);
+		if (checkWaterVaporize && level.environmentAttributes().getDimensionValue(EnvironmentAttributes.WATER_EVAPORATES) && fluid.is(FluidTags.WATER)) {
+			level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 2.6F + (level.getRandom().nextFloat() - level.getRandom().nextFloat()) * 0.8F);
 			for (int l = 0; l < 8; ++l) {
 				level.addParticle(ParticleTypes.LARGE_SMOKE, pos.getX() + Math.random(), pos.getY() + Math.random(), pos.getZ() + Math.random(), 0.0D, 0.0D, 0.0D);
 			}
@@ -324,8 +325,8 @@ public final class WorldHelper {
 
 	public static void copySignData(Level level, BlockPos pos, SignBlockEntity oldSign) {
 		if (oldSign != null && level.getBlockEntity(pos) instanceof SignBlockEntity newSign) {
-			newSign.setText(oldSign.getText(true), true);
-			newSign.setText(oldSign.getText(false), false);
+			newSign.setText(oldSign.getText(SignTextSlot.FRONT), SignTextSlot.FRONT);
+			newSign.setText(oldSign.getText(SignTextSlot.BACK), SignTextSlot.BACK);
 			newSign.setAllowedPlayerEditor(oldSign.getPlayerWhoMayEdit());
 			newSign.setWaxed(oldSign.isWaxed());
 		}
@@ -451,11 +452,11 @@ public final class WorldHelper {
 			BlockState state = level.getBlockState(currentPos);
 			if (state.getBlock() instanceof BonemealableBlock growable) {
 				//Note: We intentionally don't fire the bone meal used event, as we aren't actually applying bone meal to the target
-				if (growable.isValidBonemealTarget(level, currentPos, state)) {
+				if (growable.isValidBonemealTarget(level, currentPos, state, BonemealSource.INTERACTION)) {
 					if (ProjectEConfig.server.items.harvBandIndirect.get() || !onlyAffectsOtherBlocks(state.getBlock())) {
 						//Based on our chance, apply bonemeal if the subchance for that growable also passes
-						if (level.random.nextInt(chance) == 0 && growable.isBonemealSuccess(level, level.random, currentPos, state)) {
-							growable.performBonemeal(serverLevel, level.random, currentPos, state);
+						if (level.getRandom().nextInt(chance) == 0 && growable.isBonemealSuccess(level, level.getRandom(), currentPos, state, BonemealSource.INTERACTION)) {
+							growable.performBonemeal(serverLevel, level.getRandom(), currentPos, state, BonemealSource.INTERACTION);
 							level.levelEvent(LevelEvent.PARTICLES_AND_SOUND_PLANT_GROWTH, currentPos, 0);
 						}
 					}
@@ -467,12 +468,12 @@ public final class WorldHelper {
 				//Any modded or vanilla plants that are not bonemealable
 				//Note: While things like mangroves leaves do return true for isPlantable, they won't be handled by this branch as they are bonemealable
 				// and thus will be handled by the corresponding above check
-				if (state.isRandomlyTicking() && level.random.nextInt(chance / 4) == 0) {
+				if (state.isRandomlyTicking() && level.getRandom().nextInt(chance / 4) == 0) {
 					//If the block accepts random ticks, apply a chance to give it said extra random tick.
 					// This includes things like vanilla flowers (modded flowers might have random ticks, or they might not)
 					Block initialType = state.getBlock();
 					for (int i = 0, ticks = harvest ? 8 : 4; i < ticks; i++) {
-						state.randomTick(serverLevel, currentPos, level.random);
+						state.randomTick(serverLevel, currentPos, level.getRandom());
 						state = level.getBlockState(currentPos);
 						if (!state.is(initialType)) {
 							//If the state changed blocks (not just states) we are in a state we aren't quite sure how to handle
@@ -487,7 +488,7 @@ public final class WorldHelper {
 				tryHarvest(level, currentPos, state, player, harvest);
 			}
 			// Generic water plants
-			else if (!grewWater && level.random.nextInt(Block.UPDATE_LIMIT) == 0 && BoneMealItem.growWaterPlant(ItemStack.EMPTY, level, currentPos, null)) {
+			else if (!grewWater && level.getRandom().nextInt(Block.UPDATE_LIMIT) == 0 && BoneMealItem.growWaterPlant(ItemStack.EMPTY, level, currentPos, null)) {
 				level.levelEvent(LevelEvent.PARTICLES_AND_SOUND_PLANT_GROWTH, currentPos, 0);
 				grewWater = true;
 			}
@@ -542,9 +543,10 @@ public final class WorldHelper {
 			ageProperty = AGE_PROPERTIES.get(block);
 		} else {
 			//Figure out what age property this block uses
-			for (Map.Entry<Property<?>, Comparable<?>> entry : state.getValues().entrySet()) {
-				if (entry.getKey().getName().equals("age")) {
-					if (entry.getValue() instanceof IntegerProperty intProperty) {
+			//26.3: BlockState#getValues now returns a Stream of Property.Value records instead of a map of property to value
+			for (Property<?> property : state.getProperties()) {
+				if (property.getName().equals("age")) {
+					if (property instanceof IntegerProperty intProperty) {
 						//It is a type of property we understand how to handle
 						ageProperty = intProperty;
 					}
@@ -563,7 +565,7 @@ public final class WorldHelper {
 	public static boolean isUnharvestableImplementation(Block block) {
 		//Instance check for blocks that get handled because of being plantable from the instanceof BushBlock check
 		//Note: We can't just include these by default in the blacklist harvest tag, as then we might harvest modded ones that we don't want to
-		return block instanceof StemBlock || block instanceof AttachedStemBlock || block instanceof WaterlilyBlock || onlyAffectsOtherBlocks(block);
+		return block instanceof StemBlock || block instanceof AttachedStemBlock || block == Blocks.LILY_PAD || onlyAffectsOtherBlocks(block);
 	}
 
 	/**
@@ -590,7 +592,7 @@ public final class WorldHelper {
 	private static boolean onlyAffectsOtherBlocks(Block block) {
 		//We don't want these to be broken as the bonemeal affects a different block than the one in their position,
 		// and either doesn't or has a chance of not changing whether bonemeal can be applied
-		return block instanceof GrassBlock || block instanceof NyliumBlock || block instanceof MossBlock;
+		return block instanceof GrassBlock || block instanceof NyliumBlock || block == Blocks.MOSS_BLOCK;
 	}
 
 	private static <DATA> boolean validState(DATA data, BiPredicate<BlockState, DATA> stateChecker, BlockState state, Level level, BlockPos pos, Player player) {
@@ -612,7 +614,7 @@ public final class WorldHelper {
 		Queue<TargetInfo> frontier = new ArrayDeque<>();
 		VeinStateChecker<DATA> validState;
 		//Ensure the block can be destroyed and the player can target the block at that position
-		if (level.isClientSide) {
+		if (level.isClientSide()) {
 			validState = WorldHelper::validState;
 		} else {
 			//If we are server side we want to perform an extra check to determine if the player can break the block
@@ -623,7 +625,7 @@ public final class WorldHelper {
 		for (BlockPos pos : WorldHelper.getPositionsInBox(area)) {
 			BlockState state = level.getBlockState(pos);
 			if (validState.test(data, stateChecker, state, level, pos, player)) {
-				if (level.isClientSide) {
+				if (level.isClientSide()) {
 					return 1;
 				}
 				pos = pos.immutable();
@@ -663,14 +665,14 @@ public final class WorldHelper {
 
 	public static void igniteNearby(Level level, Player player) {
 		for (BlockPos pos : getPositionsInBox(player.getBoundingBox().inflate(8, 5, 8))) {
-			if (level.random.nextInt(128) == 0 && level.isEmptyBlock(pos)) {
+			if (level.getRandom().nextInt(128) == 0 && level.isEmptyBlock(pos)) {
 				PlayerHelper.checkedPlaceBlock(player, level, pos.immutable(), Blocks.FIRE.defaultBlockState());
 			}
 		}
 	}
 
 	public static boolean validRepelEntity(Entity entity, TagKey<EntityType<?>> blacklistTag) {
-		if (!entity.isSpectator() && !entity.getType().is(blacklistTag)) {
+		if (!entity.isSpectator() && !entity.getType().builtInRegistryHolder().is(blacklistTag)) {
 			if (entity instanceof Projectile) {
 				//Accept any projectile's that are not in the ground, but fail for ones that are in the ground
 				return !entity.onGround();
@@ -716,7 +718,7 @@ public final class WorldHelper {
 		BlockPos pos = ctx.getClickedPos();
 		Direction side = ctx.getClickedFace();
 		if (BaseFireBlock.canBePlacedAt(level, pos, side)) {
-			if (!level.isClientSide && PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
+			if (!level.isClientSide() && PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
 				level.setBlockAndUpdate(pos, BaseFireBlock.getState(level, pos));
 				level.playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.POWER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 			}
@@ -724,26 +726,26 @@ public final class WorldHelper {
 			BlockState state = level.getBlockState(pos);
 			if (CampfireBlock.canLight(state) || CandleBlock.canLight(state) || CandleCakeBlock.canLight(state)) {
 				//Light campfires, candles, and candle cakes like vanilla flint and steel does
-				if (!level.isClientSide && PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
+				if (!level.isClientSide() && PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
 					level.setBlockAndUpdate(pos, state.setValue(BlockStateProperties.LIT, true));
 					level.playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.POWER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 				}
 			} else if (state.getBlock() instanceof TntBlock) {
-				if (!level.isClientSide && PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
+				if (!level.isClientSide() && PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
 					// Ignite the tnt
 					if (state.getBlock() instanceof ProjectETNT petnt) {
 						petnt.createAndAddEntity(level, pos, player);
 					} else {
-						TntBlock.explode(level, pos);
+						TntBlock.prime(level, pos);
 					}
 					level.removeBlock(pos, false);
 					level.playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.POWER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 				}
-			} else if (FlammableBlockRegistry.getDefaultInstance().get(state.getBlock()).getBurnChance() > 0) {
+			} else if (FlammableBlockRegistry.getDefaultInstance().get(state.getBlock()).getBurnOdds() > 0) {
 				//For flammable blocks, try to place fire against the clicked face like using flint and steel would
 				BlockPos firePos = pos.relative(side);
 				if (BaseFireBlock.canBePlacedAt(level, firePos, side)) {
-					if (!level.isClientSide && PlayerHelper.hasBreakPermission((ServerPlayer) player, level, firePos)) {
+					if (!level.isClientSide() && PlayerHelper.hasBreakPermission((ServerPlayer) player, level, firePos)) {
 						level.setBlockAndUpdate(firePos, BaseFireBlock.getState(level, firePos));
 						level.playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.POWER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 					}
@@ -754,7 +756,7 @@ public final class WorldHelper {
 				return InteractionResult.PASS;
 			}
 		}
-		return InteractionResult.sidedSuccess(level.isClientSide);
+		return (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 	}
 
 	/**
@@ -778,7 +780,7 @@ public final class WorldHelper {
 	 */
 	@Contract("null, _ -> false")
 	public static boolean isChunkLoaded(@Nullable LevelReader world, ChunkPos chunkPos) {
-		return isChunkLoaded(world, chunkPos.x, chunkPos.z);
+		return isChunkLoaded(world, chunkPos.getMinBlockX(), chunkPos.getMinBlockZ());
 	}
 
 	/**

@@ -5,7 +5,7 @@ import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.gameObjs.registries.PERecipeConditions;
 import net.fabricmc.fabric.api.resource.conditions.v1.ResourceCondition;
 import net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditionType;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.RegistryOps;
 import org.jetbrains.annotations.Nullable;
 
 public class FullKleinStarsCondition implements ResourceCondition {
@@ -22,7 +22,8 @@ public class FullKleinStarsCondition implements ResourceCondition {
 	}
 
 	@Override
-	public boolean test(HolderLookup.Provider registryLookup) {
+	//26.3 changed ResourceCondition#test to take a RegistryOps.RegistryInfoLookup
+	public boolean test(RegistryOps.RegistryInfoLookup registryLookup) {
 		return ProjectEConfig.common.fullKleinStars.get();
 	}
 }

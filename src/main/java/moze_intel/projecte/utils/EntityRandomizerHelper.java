@@ -12,8 +12,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.animal.Rabbit;
-import net.minecraft.world.entity.animal.Rabbit.Variant;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import net.minecraft.world.entity.animal.rabbit.Rabbit.Variant;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,8 +22,8 @@ public class EntityRandomizerHelper {
 	@Nullable
 	public static Mob getRandomEntity(Level level, Mob toRandomize) {
 		EntityType<?> entType = toRandomize.getType();
-		boolean isPeaceful = entType.is(PETags.Entities.RANDOMIZER_PEACEFUL);
-		boolean isHostile = entType.is(PETags.Entities.RANDOMIZER_HOSTILE);
+		boolean isPeaceful = entType.builtInRegistryHolder().is(PETags.Entities.RANDOMIZER_PEACEFUL);
+		boolean isHostile = entType.builtInRegistryHolder().is(PETags.Entities.RANDOMIZER_HOSTILE);
 		if (isPeaceful && isHostile) {
 			//If it is in both lists do some extra checks to see if it really is peaceful
 			// currently this only includes our special casing for killer rabbits
@@ -37,7 +37,8 @@ public class EntityRandomizerHelper {
 		} else if (isHostile) {
 			Mob ent = createRandomEntity(level, toRandomize, PETags.Entities.RANDOMIZER_HOSTILE);
 			if (ent instanceof Rabbit rabbit) {
-				rabbit.setVariant(Variant.EVIL);
+				//26.3 made Rabbit#setVariant private; the variant is applied through its data component instead
+				rabbit.setComponent(net.minecraft.core.component.DataComponents.RABBIT_VARIANT, Variant.EVIL);
 			}
 			return ent;
 		}
@@ -52,7 +53,8 @@ public class EntityRandomizerHelper {
 			//If the type is identical return null so that nothing happens
 			return null;
 		}
-		Entity newEntity = newType.create(level);
+		//26.3 EntityType#create requires an EntitySpawnReason
+		Entity newEntity = newType.create(level, net.minecraft.world.entity.EntitySpawnReason.MOB_SUMMONED);
 		if (newEntity instanceof Mob) {
 			return (Mob) newEntity;
 		} else if (newEntity != null) {
@@ -66,14 +68,15 @@ public class EntityRandomizerHelper {
 	}
 
 	private static EntityType<?> getRandomTagEntry(RandomSource random, Registry<EntityType<?>> registry, TagKey<EntityType<?>> tagKey, EntityType<?> toExclude) {
-		Optional<HolderSet.Named<EntityType<?>>> optionalTag = registry.getTag(tagKey);
+		Optional<HolderSet.Named<EntityType<?>>> optionalTag = ((net.minecraft.core.HolderGetter<net.minecraft.world.entity.EntityType<?>>) registry).get(tagKey);
 		if (optionalTag.isEmpty()) {
 			//Failed to get the tag
 			return toExclude;
 		}
 		HolderSet.Named<EntityType<?>> tag = optionalTag.get();
 		int size = tag.size();
-		if (size == 0 || size == 1 && toExclude.is(tagKey)) {
+		//26.3 dropped EntityType#is(TagKey); the built-in registry holder carries the tags now
+		if (size == 0 || size == 1 && toExclude.builtInRegistryHolder().is(tagKey)) {
 			return toExclude;
 		}
 		Optional<EntityType<?>> obj;

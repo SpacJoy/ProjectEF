@@ -1,13 +1,12 @@
 package moze_intel.projecte.gameObjs.blocks;
 
-import com.mojang.serialization.MapCodec;
 import moze_intel.projecte.utils.OpenScreenHelper;
 import moze_intel.projecte.gameObjs.container.TransmutationContainer;
-import moze_intel.projecte.gameObjs.registries.PEBlockTypes;
 import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -16,7 +15,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.Mirror;
@@ -50,11 +51,6 @@ public class TransmutationStone extends DirectionalBlock implements SimpleWaterl
 
 	@NotNull
 	@Override
-	protected MapCodec<? extends DirectionalBlock> codec() {
-		return PEBlockTypes.TRANSMUTATION_TABLE.value();
-	}
-
-	@Override
 	protected void createBlockStateDefinition(@NotNull StateDefinition.Builder<Block, BlockState> props) {
 		super.createBlockStateDefinition(props);
 		props.add(FACING, BlockStateProperties.WATERLOGGED);
@@ -85,10 +81,10 @@ public class TransmutationStone extends DirectionalBlock implements SimpleWaterl
 	@Override
 	@Deprecated
 	protected InteractionResult useWithoutItem(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player, @NotNull BlockHitResult rtr) {
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			OpenScreenHelper.openMenuWithData(player, new ContainerProvider(), buf -> buf.writeBoolean(false));
 		}
-		return InteractionResult.sidedSuccess(level.isClientSide);
+		return (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 	}
 
 	@Nullable
@@ -108,12 +104,12 @@ public class TransmutationStone extends DirectionalBlock implements SimpleWaterl
 	@NotNull
 	@Override
 	@Deprecated
-	public BlockState updateShape(@NotNull BlockState state, @NotNull Direction facing, @NotNull BlockState facingState, @NotNull LevelAccessor level,
-			@NotNull BlockPos currentPos, @NotNull BlockPos facingPos) {
+	public BlockState updateShape(@NotNull BlockState state, @NotNull LevelReader level, @NotNull ScheduledTickAccess ticks, @NotNull BlockPos pos,
+			@NotNull Direction facing, @NotNull BlockPos facingPos, @NotNull BlockState facingState, @NotNull RandomSource random) {
 		if (state.getValue(BlockStateProperties.WATERLOGGED)) {
-			level.scheduleTick(currentPos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
+			ticks.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
 		}
-		return super.updateShape(state, facing, facingState, level, currentPos, facingPos);
+		return super.updateShape(state, level, ticks, pos, facing, facingPos, facingState, random);
 	}
 
 	@NotNull

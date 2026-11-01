@@ -50,14 +50,14 @@ public class InternalAbilities {
 				}
 				applyWaterSpeed = waterWalkOnType.applySpeed(water);
 				applyLavaSpeed = lavaWalkOnType.applySpeed(lava);
-			} else if (!player.level().isClientSide) {
+			} else if (!player.level().isClientSide()) {
 				if (waterWalkOnType.canWalk() && player.isInWater()) {
 					//Things that apply water walking also refresh air supply when in water
 					player.setAirSupply(player.getMaxAirSupply());
 				}
 			}
 		}
-		if (!player.level().isClientSide) {
+		if (!player.level().isClientSide()) {
 			updateAttribute(player, Attributes.MOVEMENT_SPEED, WATER_SPEED_BOOST, applyWaterSpeed);
 			updateAttribute(player, Attributes.MOVEMENT_SPEED, LAVA_SPEED_BOOST, applyLavaSpeed);
 			updateFlight(player);
@@ -88,7 +88,9 @@ public class InternalAbilities {
 		player.setAttached(PEAttachmentTypes.SWRG_FLIGHT_STATE, flying);
 		if (!alreadyAnnounced && PlayerHelper.checkHotbarCurios(player, (p, stack) -> stack.is(PEItems.SWIFTWOLF_RENDING_GALE.get()))) {
 			//Higher pitch for taking off, so the direction of the change is audible without watching the screen
-			player.playNotifySound(flying ? PESoundEvents.HEAL.get() : PESoundEvents.UNCHARGE.get(), SoundSource.PLAYERS, 0.6F, flying ? 1.2F : 1.0F);
+			//26.3 removed Player#playNotifySound; play it through the level so it is not tied to a client-only path
+			player.level().playSound(null, player.getX(), player.getY(), player.getZ(), flying ? PESoundEvents.HEAL.get() : PESoundEvents.UNCHARGE.get(),
+					SoundSource.PLAYERS, 0.6F, flying ? 1.2F : 1.0F);
 		}
 	}
 

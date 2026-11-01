@@ -1,7 +1,7 @@
 package moze_intel.projecte.config;
 
-import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeConfigRegistry;
-import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeModConfigEvents;
+import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry;
+import fuzs.forgeconfigapiport.fabric.api.v5.ModConfigEvents;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -40,9 +40,9 @@ public class ProjectEConfig {
 		registerConfig(client);
 		//Note: We listen to both the initial load and the reload, to make sure that we fix any accidentally
 		// cached values from calls before the initial loading
-		NeoForgeModConfigEvents.loading(PECore.MODID).register(config -> onConfigLoad(config, false));
-		NeoForgeModConfigEvents.reloading(PECore.MODID).register(config -> onConfigLoad(config, false));
-		NeoForgeModConfigEvents.unloading(PECore.MODID).register(config -> onConfigLoad(config, true));
+		ModConfigEvents.loading(PECore.MODID).register(config -> onConfigLoad(config, false));
+		ModConfigEvents.reloading(PECore.MODID).register(config -> onConfigLoad(config, false));
+		ModConfigEvents.unloading(PECore.MODID).register(config -> onConfigLoad(config, true));
 	}
 
 	public static Collection<IPEConfig> getConfigs() {
@@ -53,7 +53,7 @@ public class ProjectEConfig {
 	 * Creates and registers a mod config, and tracks it so that we can properly clear cached values.
 	 */
 	public static void registerConfig(IPEConfig config) {
-		NeoForgeConfigRegistry.INSTANCE.register(PECore.MODID, config.getConfigType(), config.getConfigSpec(), PECore.CONFIG_DIR_NAME + "/" + config.getFileName() + ".toml");
+		ConfigRegistry.INSTANCE.register(PECore.MODID, config.getConfigType(), config.getConfigSpec(), PECore.CONFIG_DIR_NAME + "/" + config.getFileName() + ".toml");
 		KNOWN_CONFIGS.put(config.getConfigSpec(), config);
 	}
 

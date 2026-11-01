@@ -204,7 +204,7 @@ public class SearchQueryParser {
 			@Override
 			public boolean matches(@Nullable Level level, @Nullable Player player, String key, ItemStack stack) {
 				Item item = stack.getItem();
-				String modid = item.builtInRegistryHolder().unwrapKey().map(k -> k.location().getNamespace()).orElse("minecraft");
+				String modid = item.builtInRegistryHolder().unwrapKey().map(k -> k.identifier().getNamespace()).orElse("minecraft");
 				if (modid == null) {
 					PECore.LOGGER.error("Unexpected null registry name for item of class type: {}", item.getClass().getSimpleName());
 					return false;
@@ -227,7 +227,8 @@ public class SearchQueryParser {
 		TAG('#') {
 			@Override
 			public boolean matches(@Nullable Level level, @Nullable Player player, String key, ItemStack stack) {
-				return stack.getTags().anyMatch(tag -> tag.location().toString().toLowerCase(Locale.ROOT).contains(key));
+				//26.3 removed ItemStack#getTags; the tags hang off the item's holder now
+				return stack.typeHolder().tags().anyMatch(tag -> tag.location().toString().toLowerCase(Locale.ROOT).contains(key));
 			}
 		};
 

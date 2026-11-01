@@ -9,12 +9,13 @@ import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.utils.ItemHelper;
 import moze_intel.projecte.utils.ToolHelper;
-import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -23,6 +24,7 @@ import net.minecraft.world.item.ShearsItem;
 import net.minecraft.world.item.component.Tool;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
@@ -36,22 +38,25 @@ public class PEShears extends ShearsItem implements IItemCharge, IBarHelper, IEn
 		super(props.component(PEDataComponentTypes.CHARGE.get(), 0)
 						.component(PEDataComponentTypes.STORED_EMC.get(), 0L)
 						.component(DataComponents.TOOL, new Tool(List.of(
-								Tool.Rule.minesAndDrops(PETags.Blocks.MINEABLE_WITH_PE_SHEARS, matterType.getSpeed()),
-								Tool.Rule.overrideSpeed(BlockTags.LEAVES, 15.0F),
-								Tool.Rule.overrideSpeed(BlockTags.WOOL, 5.0F),
-								Tool.Rule.overrideSpeed(List.of(Blocks.VINE, Blocks.GLOW_LICHEN), 2.0F)
-						), 1.0F, 1))
+								Tool.Rule.minesAndDrops(blocks(PETags.Blocks.MINEABLE_WITH_PE_SHEARS), matterType.getSpeed()),
+								Tool.Rule.overrideSpeed(blocks(BlockTags.LEAVES), 15.0F),
+								Tool.Rule.overrideSpeed(blocks(BlockTags.WOOL), 5.0F),
+								//26.3: Tool.Rule only accepts HolderSet now, so the two-block case has to be built explicitly.
+								Tool.Rule.overrideSpeed(HolderSet.direct(Blocks.VINE.builtInRegistryHolder(), Blocks.GLOW_LICHEN.builtInRegistryHolder()), 2.0F)
+						), 1.0F, 1, true))
 		);
 		this.matterType = matterType;
 		this.numCharges = numCharges;
 	}
 
-
-	@Override
-	public int getEnchantmentValue() {
-		//Shears are not tier based, so the enchantment value has to come from the matter type directly
-		return matterType.getEnchantmentValue();
+	/**
+	 * 26.3 made every {@code Tool.Rule} factory take a {@link HolderSet} instead of a {@link TagKey}. The bootstrap lookup
+	 * is the same one vanilla's {@code ToolMaterial#applyToolProperties} uses, so block tags are resolved the same way.
+	 */
+	private static HolderSet<Block> blocks(TagKey<Block> tag) {
+		return BuiltInRegistries.acquireBootstrapRegistrationLookup(BuiltInRegistries.BLOCK).getOrThrow(tag);
 	}
+
 
 	@Override
 	public boolean isBarVisible(@NotNull ItemStack stack) {
@@ -85,8 +90,8 @@ public class PEShears extends ShearsItem implements IItemCharge, IBarHelper, IEn
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
-		return ItemHelper.actionResultFromType(ToolHelper.shearEntityAOE(player, hand, 0), player.getItemInHand(hand));
+	public InteractionResult use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
+		return ToolHelper.shearEntityAOE(player, hand, 0);
 	}
 
 	@NotNull

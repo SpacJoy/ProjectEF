@@ -28,12 +28,10 @@ import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.PickaxeItem;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -41,13 +39,17 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBlockTags;
 import org.jetbrains.annotations.NotNull;
 
-public class PEPickaxe extends PickaxeItem implements IItemCharge, IItemMode<PickaxeMode>, IBarHelper, IEnchantableEquipment {
+public class PEPickaxe extends Item implements IItemCharge, IItemMode<PickaxeMode>, IBarHelper, IEnchantableEquipment {
 
 	private final IMatterType matterType;
 	private final int numCharges;
 
+	/**
+	 * 26.3 deleted {@code PickaxeItem}: the tool component is built from the matter's
+	 * {@link net.minecraft.world.item.ToolMaterial} through {@code Item.Properties#pickaxe}.
+	 */
 	public PEPickaxe(IMatterType matterType, int numCharges, Properties props) {
-		super(matterType, props.attributes(createAttributes(matterType, 4, -2.8F))
+		super(matterType.applyPickaxe(props, 4, -2.8F)
 				.component(PEDataComponentTypes.PICKAXE_MODE.get(), PickaxeMode.STANDARD)
 				.component(PEDataComponentTypes.CHARGE.get(), 0)
 		);
@@ -90,20 +92,20 @@ public class PEPickaxe extends PickaxeItem implements IItemCharge, IItemMode<Pic
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
-		tooltip.add(getToolTip(stack));
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
+		tooltip.accept(getToolTip(stack));
 	}
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
+	public InteractionResult use(@NotNull Level level, @NotNull Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 		if (ProjectEConfig.server.items.pickaxeAoeVeinMining.get()) {
 			//If we are supposed to mine in an AOE then attempt to do so
-			return ItemHelper.actionResultFromType(ToolHelper.mineOreVeinsInAOE(player, hand), stack);
+			return ToolHelper.mineOreVeinsInAOE(player, hand);
 		}
-		return InteractionResultHolder.pass(stack);
+		return InteractionResult.PASS;
 	}
 
 	@NotNull

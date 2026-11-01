@@ -9,7 +9,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -22,13 +22,13 @@ public class GemLegs extends GemArmorBase {
 	private static final Vec3 DOWNWARD_MOVEMENT = new Vec3(0, -0.32F, 0);
 
 	public GemLegs(Properties props) {
-		super(ArmorItem.Type.LEGGINGS, props);
+		super(ArmorType.LEGGINGS, props);
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
-		tooltip.add(PELang.GEM_LORE_LEGS.translate());
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
+		tooltip.accept(PELang.GEM_LORE_LEGS.translate());
 	}
 
 	private final Int2LongMap lastJumpTracker = new Int2LongOpenHashMap();
@@ -38,10 +38,10 @@ public class GemLegs extends GemArmorBase {
 	}
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
 		if (entity instanceof Player player && isEquipped(stack, player)) {
-			if (level.isClientSide) {
+			if (level.isClientSide()) {
 				//Fabric has no LivingJumpEvent, so approximate the jump moment client side as the first tick the player rises while airborne
 				if (!player.onGround() && player.getDeltaMovement().y() > 0 && !jumpedRecently(player)) {
 					lastJumpTracker.put(player.getId(), level.getGameTime());
@@ -52,7 +52,7 @@ public class GemLegs extends GemArmorBase {
 			}
 			if (player.isSecondaryUseActive()) {
 				WorldHelper.repelEntitiesSWRG(level, player.getBoundingBox().inflate(3.5), player);
-				if (!level.isClientSide && player.getDeltaMovement().y() < -0.08) {
+				if (!level.isClientSide() && player.getDeltaMovement().y() < -0.08) {
 					for (Entity e : player.level().getEntities(player,
 							player.getBoundingBox().move(player.getDeltaMovement()).inflate(2.0D),
 							ent -> ent.isAlive() && ent.isPickable() && ent instanceof LivingEntity

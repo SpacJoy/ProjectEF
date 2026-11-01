@@ -11,7 +11,7 @@ import moze_intel.projecte.network.packets.to_client.EMCManagerResponsePKT.Statu
 import moze_intel.projecte.network.packets.to_server.EMCManagerRequestPKT;
 import moze_intel.projecte.network.packets.to_server.EMCManagerRequestPKT.Action;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
@@ -20,7 +20,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +41,7 @@ public class EMCManagerScreen extends Screen {
 	private int left, top, panelWidth, panelHeight, listWidth, editorX, editorWidth, page, pageSize;
 	private int permissions, requestId = -1, waitingTicks;
 	private long currentValue, customValue = -1;
-	private ResourceLocation requestItem;
+	private Identifier requestItem;
 	private Action lastAction = Action.QUERY;
 
 	public EMCManagerScreen(@Nullable Screen parent) {
@@ -101,9 +101,14 @@ public class EMCManagerScreen extends Screen {
 		}
 		valueBox = addRenderableWidget(new EditBox(font, editorX, top + 112, editorWidth, 18, text("value")));
 		valueBox.setMaxLength(19);
-		valueBox.setFilter(value -> value.chars().allMatch(character -> character >= '0' && character <= '9'));
+		//26.3 dropped EditBox#setFilter; the responder below now rejects anything that is not a digit
 		valueBox.setValue(valueText);
 		valueBox.setResponder(value -> {
+			if (!value.isEmpty() && !value.chars().allMatch(character -> character >= '0' && character <= '9')) {
+				//Reject the keystroke by restoring the last accepted text; setValue re-enters with a valid value once
+				valueBox.setValue(valueText);
+				return;
+			}
 			valueText = value;
 			updateButtons();
 		});
@@ -166,9 +171,9 @@ public class EMCManagerScreen extends Screen {
 		if (heldStack.isEmpty()) {
 			return;
 		}
-		ResourceLocation heldId = BuiltInRegistries.ITEM.getKey(heldStack.getItem());
-		minecraft.setScreen(new ConfirmScreen(confirmed -> {
-			minecraft.setScreen(this);
+		Identifier heldId = BuiltInRegistries.ITEM.getKey(heldStack.getItem());
+		minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
+			minecraft.gui.setScreen(this);
 			if (confirmed) {
 				request(Action.RESET_MOD, heldId);
 			}
@@ -193,11 +198,11 @@ public class EMCManagerScreen extends Screen {
 		request(action, BuiltInRegistries.ITEM.getKey(selected.getItem()), parsedValue());
 	}
 
-	private void request(Action action, ResourceLocation target) {
+	private void request(Action action, Identifier target) {
 		request(action, target, parsedValue());
 	}
 
-	private void request(Action action, ResourceLocation target, long value) {
+	private void request(Action action, Identifier target, long value) {
 		if (busy) {
 			return;
 		}
@@ -282,8 +287,8 @@ public class EMCManagerScreen extends Screen {
 	}
 
 	private void confirm(Action action) {
-		minecraft.setScreen(new ConfirmScreen(confirmed -> {
-			minecraft.setScreen(this);
+		minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
+			minecraft.gui.setScreen(this);
 			if (confirmed) {
 				request(action);
 			}
@@ -296,9 +301,9 @@ public class EMCManagerScreen extends Screen {
 			return;
 		}
 		if (pending || !valueText.equals(serverValueText)) {
-			minecraft.setScreen(new ConfirmScreen(confirmed -> minecraft.setScreen(confirmed ? parent : this), text("title"), text("confirm_close")));
+			minecraft.gui.setScreen(new ConfirmScreen(confirmed -> minecraft.gui.setScreen(confirmed ? parent : this), text("title"), text("confirm_close")));
 		} else {
-			minecraft.setScreen(parent);
+			minecraft.gui.setScreen(parent);
 		}
 	}
 
@@ -332,35 +337,35 @@ public class EMCManagerScreen extends Screen {
 	}
 
 	@Override
-	public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 		//Screen.render draws the background before its widgets. Draw our labels only after that pass.
-		super.render(graphics, mouseX, mouseY, partialTick);
+		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 		if (tooSmall) {
-			graphics.drawCenteredString(font, text("too_small"), width / 2, height / 2, 0xFFFFFF);
+			graphics.centeredText(font, text("too_small"), width / 2, height / 2, 0xFFFFFFFF);
 			return;
 		}
-		graphics.drawString(font, title, left + 10, top + 8, 0xF4DB98, false);
-		drawClipped(graphics, text("base_only"), left + 10, top + 24, panelWidth - 20, 0xACB6C8, mouseX, mouseY);
-		graphics.renderItem(selected, editorX, top + 38);
-		drawClipped(graphics, selected.getHoverName(), editorX + 22, top + 42, editorWidth - 22, 0xFFFFFF, mouseX, mouseY);
-		drawClipped(graphics, Component.literal(BuiltInRegistries.ITEM.getKey(selected.getItem()).toString()), editorX, top + 61, editorWidth, 0xACB6C8, mouseX, mouseY);
-		drawClipped(graphics, text("current", loaded ? Long.toString(currentValue) : "—"), editorX, top + 75, editorWidth, 0xF4DB98, mouseX, mouseY);
+		graphics.text(font, title, left + 10, top + 8, 0xFFF4DB98, false);
+		drawClipped(graphics, text("base_only"), left + 10, top + 24, panelWidth - 20, 0xFFACB6C8, mouseX, mouseY);
+		graphics.item(selected, editorX, top + 38);
+		drawClipped(graphics, selected.getHoverName(), editorX + 22, top + 42, editorWidth - 22, 0xFFFFFFFF, mouseX, mouseY);
+		drawClipped(graphics, Component.literal(BuiltInRegistries.ITEM.getKey(selected.getItem()).toString()), editorX, top + 61, editorWidth, 0xFFACB6C8, mouseX, mouseY);
+		drawClipped(graphics, text("current", loaded ? Long.toString(currentValue) : "—"), editorX, top + 75, editorWidth, 0xFFF4DB98, mouseX, mouseY);
 		drawClipped(graphics, text("override", !loaded ? Component.literal("—") : customValue < 0 ? text("default") : Component.literal(Long.toString(customValue))),
 				editorX, top + 89, editorWidth, 0xACB6C8, mouseX, mouseY);
-		drawClipped(graphics, text("value"), editorX, top + 101, editorWidth, 0xFFFFFF, mouseX, mouseY);
+		drawClipped(graphics, text("value"), editorX, top + 101, editorWidth, 0xFFFFFFFF, mouseX, mouseY);
 		boolean invalidValue = !busy && loaded && !valueText.isEmpty() && parsedValue() <= 0;
 		Component feedback = invalidValue ? Status.INVALID_VALUE.message() : !error && !busy && pending ? text("pending") : status;
-		drawClipped(graphics, feedback, left + 10, top + panelHeight - 40, panelWidth - 20, error || invalidValue ? 0xFF8888 : 0xE0CC93, mouseX, mouseY);
-		graphics.drawCenteredString(font, text("page", page + 1, Math.max(1, (filtered.size() + pageSize - 1) / pageSize)),
+		drawClipped(graphics, feedback, left + 10, top + panelHeight - 40, panelWidth - 20, error || invalidValue ? 0xFFFF8888 : 0xFFE0CC93, mouseX, mouseY);
+		graphics.centeredText(font, text("page", page + 1, Math.max(1, (filtered.size() + pageSize - 1) / pageSize)),
 				left + 10 + listWidth / 2, top + panelHeight - 20, 0xFFFFFF);
 		if (filtered.isEmpty()) {
-			graphics.drawCenteredString(font, text("no_results"), left + 10 + listWidth / 2, top + 70, 0xACB6C8);
+			graphics.centeredText(font, text("no_results"), left + 10 + listWidth / 2, top + 70, 0xFFACB6C8);
 		}
 	}
 
 	@Override
-	public void renderBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		super.renderBackground(graphics, mouseX, mouseY, partialTick);
+	public void extractBackground(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+		super.extractBackground(graphics, mouseX, mouseY, partialTick);
 		if (!tooSmall) {
 			graphics.fill(left, top, left + panelWidth, top + panelHeight, 0xF0181C26);
 			graphics.fill(left, top, left + panelWidth, top + 2, 0xFFC7A75B);
@@ -368,12 +373,12 @@ public class EMCManagerScreen extends Screen {
 		}
 	}
 
-	private void drawClipped(GuiGraphics graphics, Component component, int x, int y, int availableWidth, int color, int mouseX, int mouseY) {
+	private void drawClipped(GuiGraphicsExtractor graphics, Component component, int x, int y, int availableWidth, int color, int mouseX, int mouseY) {
 		String value = component.getString();
 		boolean clipped = font.width(value) > availableWidth;
-		graphics.drawString(font, clipped ? font.plainSubstrByWidth(value, availableWidth - font.width("…")) + "…" : value, x, y, color, false);
+		graphics.text(font, clipped ? font.plainSubstrByWidth(value, availableWidth - font.width("…")) + "…" : value, x, y, color, false);
 		if (clipped && mouseX >= x && mouseX < x + availableWidth && mouseY >= y && mouseY < y + font.lineHeight) {
-			setTooltipForNextRenderPass(component);
+			graphics.setTooltipForNextFrame(font, component, mouseX, mouseY);
 		}
 	}
 
@@ -389,26 +394,26 @@ public class EMCManagerScreen extends Screen {
 		}
 
 		@Override
-		public void onPress() {
+		public void onPress(net.minecraft.client.input.InputWithModifiers input) {
 			if (entry != null) {
 				select(entry.stack());
 			}
 		}
 
 		@Override
-		protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 			if (entry == null) {
 				return;
 			}
 			boolean chosen = selected.is(entry.stack().getItem());
 			graphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), chosen ? 0xFF49432E : isHoveredOrFocused() ? 0xFF354052 : 0xFF242C3A);
 			if (chosen || isFocused()) {
-				graphics.renderOutline(getX(), getY(), getWidth(), getHeight(), 0xFFC7A75B);
+				graphics.outline(getX(), getY(), getWidth(), getHeight(), 0xFFC7A75B);
 			}
-			graphics.renderItem(entry.stack(), getX() + 3, getY() + 3);
-			graphics.drawString(font, font.plainSubstrByWidth(entry.stack().getHoverName().getString(), getWidth() - 26), getX() + 24, getY() + 3,
+			graphics.item(entry.stack(), getX() + 3, getY() + 3);
+			graphics.text(font, font.plainSubstrByWidth(entry.stack().getHoverName().getString(), getWidth() - 26), getX() + 24, getY() + 3,
 					active ? 0xFFFFFF : 0x888888, false);
-			graphics.drawString(font, font.plainSubstrByWidth(entry.id(), getWidth() - 26), getX() + 24, getY() + 12, 0x96A4BB, false);
+			graphics.text(font, font.plainSubstrByWidth(entry.id(), getWidth() - 26), getX() + 24, getY() + 12, 0xFF96A4BB, false);
 		}
 	}
 }

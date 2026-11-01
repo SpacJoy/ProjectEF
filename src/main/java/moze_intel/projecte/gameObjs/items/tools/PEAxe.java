@@ -5,14 +5,11 @@ import moze_intel.projecte.gameObjs.IMatterType;
 import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
-import moze_intel.projecte.utils.ItemHelper;
 import moze_intel.projecte.utils.ToolHelper;
-import net.minecraft.core.Holder;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
@@ -20,13 +17,17 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
-public class PEAxe extends AxeItem implements IItemCharge, IBarHelper, IEnchantableEquipment {
+public class PEAxe extends Item implements IItemCharge, IBarHelper, IEnchantableEquipment {
 
 	private final IMatterType matterType;
 	private final int numCharges;
 
+	/**
+	 * 26.3 deleted {@code AxeItem}: the tool component and its attribute modifiers are now assembled from a
+	 * {@link net.minecraft.world.item.ToolMaterial} record through {@code Item.Properties#axe}.
+	 */
 	public PEAxe(IMatterType matterType, int numCharges, Properties props) {
-		super(matterType, props.attributes(createAttributes(matterType, 5, -3))
+		super(matterType.applyAxe(props, 5, -3)
 				.component(PEDataComponentTypes.CHARGE.get(), 0)
 				.component(PEDataComponentTypes.STORED_EMC.get(), 0L)
 		);

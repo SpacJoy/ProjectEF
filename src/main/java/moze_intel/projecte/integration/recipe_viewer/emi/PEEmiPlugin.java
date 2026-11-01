@@ -8,6 +8,7 @@ import dev.emi.emi.api.stack.Comparison;
 import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import java.util.Collection;
+import java.util.function.Supplier;
 import java.util.HashSet;
 import java.util.Set;
 import moze_intel.projecte.api.capabilities.item.IModeChanger;
@@ -60,9 +61,10 @@ public class PEEmiPlugin implements EmiPlugin {
 		registerItemSubtypes(registry, PEBlocks.BLOCKS.getSecondaryEntries());
 	}
 
-	public static void registerItemSubtypes(EmiRegistry registry, Collection<? extends Holder<? extends ItemLike>> itemProviders) {
-		for (Holder<? extends ItemLike> itemProvider : itemProviders) {
-			Item item = itemProvider.value().asItem();
+	//26.3 made Holder sealed, so the deferred holders are handed over as Suppliers of the registered item instead
+	public static void registerItemSubtypes(EmiRegistry registry, Collection<? extends Supplier<? extends ItemLike>> itemProviders) {
+		for (Supplier<? extends ItemLike> itemProvider : itemProviders) {
+			Item item = itemProvider.get().asItem();
 			if (item instanceof IModeChanger<?> || item.components().has(PEDataComponentTypes.STORED_EMC.get())) {
 				registry.setDefaultComparison(item, PROJECTE_COMPARISON);
 			}

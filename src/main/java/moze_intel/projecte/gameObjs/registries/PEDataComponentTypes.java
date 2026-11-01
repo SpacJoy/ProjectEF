@@ -27,7 +27,7 @@ public class PEDataComponentTypes {
 
 	public static final PEDeferredHolder<DataComponentType<?>, DataComponentType<ItemContainerContents>> EYE_INVENTORY = DATA_COMPONENT_TYPES.simple("eye_inventory",
 			builder -> builder.persistent(ItemContainerContents.CODEC
-							.validate(contents -> contents.stream().filter(s -> !s.isEmpty()).count() > 2 ? DataResult.error(() -> "The eye cannot have more than two items stored") : DataResult.success(contents)))
+							.validate(contents -> contents.nonEmptyItemCopyStream().count() > 2 ? DataResult.error(() -> "The eye cannot have more than two items stored") : DataResult.success(contents)))
 					.networkSynchronized(ItemContainerContents.STREAM_CODEC)
 					.cacheEncoding()
 	);

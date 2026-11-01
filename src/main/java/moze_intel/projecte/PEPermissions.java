@@ -3,7 +3,8 @@ package moze_intel.projecte;
 import java.util.function.Predicate;
 import me.lucko.fabric.api.permissions.v0.Permissions;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
+//26.3 replaced the int permission levels with the PermissionLevel enum
+import net.minecraft.server.permissions.PermissionLevel;
 
 /**
  * Permission nodes for the ProjectEF commands, checked through the fabric permissions api (falling back to the given vanilla permission level when no permission
@@ -12,7 +13,7 @@ import net.minecraft.commands.Commands;
 public class PEPermissions {
 
 	//Commands
-	public static final CommandPermissionNode COMMAND = new CommandPermissionNode(node("command"), Commands.LEVEL_ALL);
+	public static final CommandPermissionNode COMMAND = new CommandPermissionNode(node("command"), PermissionLevel.ALL);
 
 	public static final CommandPermissionNode COMMAND_REMOVE_EMC = nodeOpCommand("remove_emc");
 	public static final CommandPermissionNode COMMAND_RESET_EMC = nodeOpCommand("reset_emc");
@@ -35,7 +36,7 @@ public class PEPermissions {
 	}
 
 	private static CommandPermissionNode nodeOpCommand(String nodeName) {
-		return new CommandPermissionNode(node("command." + nodeName), Commands.LEVEL_GAMEMASTERS);
+		return new CommandPermissionNode(node("command." + nodeName), PermissionLevel.GAMEMASTERS);
 	}
 
 	private static CommandPermissionNode nodeSubCommand(CommandPermissionNode parent, String nodeName) {
@@ -44,7 +45,7 @@ public class PEPermissions {
 		return new CommandPermissionNode(parent.node() + "." + nodeName, parent.fallbackLevel());
 	}
 
-	public record CommandPermissionNode(String node, int fallbackLevel) implements Predicate<CommandSourceStack> {
+	public record CommandPermissionNode(String node, PermissionLevel fallbackLevel) implements Predicate<CommandSourceStack> {
 
 		@Override
 		public boolean test(CommandSourceStack source) {

@@ -21,7 +21,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import moze_intel.projecte.api.item_handlers.ItemHandlerHelper;
@@ -100,9 +100,10 @@ public class TransmutationContainer extends PEHandContainer {
 	public void removed(@NotNull Player player) {
 		super.removed(player);
 		if (!player.isAlive() || player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected()) {
-			player.drop(unlearn.getItem(), false);
+			//26.3: LivingEntity#drop takes a Prediction instead of the old flag
+			player.drop(unlearn.getItem(), false, net.minecraft.util.Prediction.SERVER_ONLY);
 		} else {
-			player.getInventory().placeItemBackInInventory(unlearn.getItem());
+			player.getInventory().placeItemBackInInventory(unlearn.getItem(), net.minecraft.util.Prediction.SERVER_ONLY);
 		}
 	}
 
@@ -126,7 +127,7 @@ public class TransmutationContainer extends PEHandContainer {
 				//Note: We can just set the size here as newStack is a copy stack used for modifications
 				stack.setCount(stack.getMaxStackSize());
 				//Check how much we can fit of the stack
-				int itemsRoomFor = stack.getCount() - ItemHelper.simulateFit(player.getInventory().items, stack);
+				int itemsRoomFor = stack.getCount() - ItemHelper.simulateFit(player.getInventory().getNonEquipmentItems(), stack);
 				if (itemsRoomFor == 1) {
 					long availableEMC = transmutationInventory.getAvailableEmcAsLong();
 					if (itemEmc > availableEMC) {
@@ -194,8 +195,8 @@ public class TransmutationContainer extends PEHandContainer {
 	}
 
 	@Override
-	public void clickPostValidate(int slotIndex, int dragType, @NotNull ClickType clickType, @NotNull Player player) {
-		if (player.level().isClientSide && transmutationInventory.getHandlerForSlot(slotIndex) == transmutationInventory.outputs) {
+	public void clickPostValidate(int slotIndex, int dragType, @NotNull ContainerInput clickType, @NotNull Player player) {
+		if (player.level().isClientSide() && transmutationInventory.getHandlerForSlot(slotIndex) == transmutationInventory.outputs) {
 			Slot slot = tryGetSlot(slotIndex);
 			if (slot != null) {
 				PENetwork.sendToServer(new SearchUpdatePKT(transmutationInventory.getIndexFromSlot(slotIndex), slot.getItem()));

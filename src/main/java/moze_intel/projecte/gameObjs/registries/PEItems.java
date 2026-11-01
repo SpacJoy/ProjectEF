@@ -1,4 +1,9 @@
 package moze_intel.projecte.gameObjs.registries;
+import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
+import net.minecraft.world.level.storage.loot.providers.number.floats.ResolvableFloat;
+import net.minecraft.world.item.component.CookingFuel;
+import net.minecraft.core.component.DataComponents;
+import java.util.function.UnaryOperator;
 
 import moze_intel.projecte.PECore;
 import moze_intel.projecte.gameObjs.EnumMatterType;
@@ -48,7 +53,7 @@ import moze_intel.projecte.gameObjs.items.tools.PESword;
 import moze_intel.projecte.gameObjs.items.tools.RedMatterSword;
 import moze_intel.projecte.gameObjs.registration.impl.ItemDeferredRegister;
 import moze_intel.projecte.gameObjs.registration.impl.ItemRegistryObject;
-import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
@@ -87,9 +92,14 @@ public class PEItems {
 	public static final ItemRegistryObject<KleinStar> KLEIN_STAR_SPHERE = registerKleinStar(KleinTier.SPHERE);
 	public static final ItemRegistryObject<KleinStar> KLEIN_STAR_OMEGA = registerKleinStar(KleinTier.OMEGA);
 
-	public static final ItemRegistryObject<Item> ALCHEMICAL_COAL = ITEMS.register("alchemical_coal");
-	public static final ItemRegistryObject<Item> MOBIUS_FUEL = ITEMS.register("mobius_fuel");
-	public static final ItemRegistryObject<Item> AETERNALIS_FUEL = ITEMS.registerSimple("aeternalis_fuel", properties -> new Item(properties.rarity(Rarity.RARE)));
+	//26.3 removed the furnace fuel table, so burn time now lives on the item as a COOKING_FUEL data component.
+	public static final int ALCHEMICAL_COAL_BURN_TIME = 1_600 * 4;
+	public static final int MOBIUS_FUEL_BURN_TIME = ALCHEMICAL_COAL_BURN_TIME * 4;
+	public static final int AETERNALIS_FUEL_BURN_TIME = MOBIUS_FUEL_BURN_TIME * 4;
+
+	public static final ItemRegistryObject<Item> ALCHEMICAL_COAL = registerFuel("alchemical_coal", ALCHEMICAL_COAL_BURN_TIME, UnaryOperator.identity());
+	public static final ItemRegistryObject<Item> MOBIUS_FUEL = registerFuel("mobius_fuel", MOBIUS_FUEL_BURN_TIME, UnaryOperator.identity());
+	public static final ItemRegistryObject<Item> AETERNALIS_FUEL = registerFuel("aeternalis_fuel", AETERNALIS_FUEL_BURN_TIME, properties -> properties.rarity(Rarity.RARE));
 	public static final ItemRegistryObject<Item> DARK_MATTER = ITEMS.registerFireImmune("dark_matter");
 	public static final ItemRegistryObject<Item> RED_MATTER = ITEMS.registerFireImmune("red_matter");
 
@@ -111,20 +121,20 @@ public class PEItems {
 	public static final ItemRegistryObject<PEKatar> RED_MATTER_KATAR = ITEMS.registerTool("rm_katar", properties -> new PEKatar(EnumMatterType.RED_MATTER, 4, properties));
 	public static final ItemRegistryObject<PEMorningStar> RED_MATTER_MORNING_STAR = ITEMS.registerTool("rm_morning_star", properties -> new PEMorningStar(EnumMatterType.RED_MATTER, 4, properties));
 
-	public static final ItemRegistryObject<DMArmor> DARK_MATTER_HELMET = ITEMS.registerNoStackFireImmune("dm_helmet", properties -> new DMArmor(ArmorItem.Type.HELMET, properties));
-	public static final ItemRegistryObject<DMArmor> DARK_MATTER_CHESTPLATE = ITEMS.registerNoStackFireImmune("dm_chestplate", properties -> new DMArmor(ArmorItem.Type.CHESTPLATE, properties));
-	public static final ItemRegistryObject<DMArmor> DARK_MATTER_LEGGINGS = ITEMS.registerNoStackFireImmune("dm_leggings", properties -> new DMArmor(ArmorItem.Type.LEGGINGS, properties));
-	public static final ItemRegistryObject<DMArmor> DARK_MATTER_BOOTS = ITEMS.registerNoStackFireImmune("dm_boots", properties -> new DMArmor(ArmorItem.Type.BOOTS, properties));
+	public static final ItemRegistryObject<DMArmor> DARK_MATTER_HELMET = ITEMS.registerArmor("dm_helmet", PEArmorMaterials.DARK_MATTER, ArmorType.HELMET, DMArmor::new);
+	public static final ItemRegistryObject<DMArmor> DARK_MATTER_CHESTPLATE = ITEMS.registerArmor("dm_chestplate", PEArmorMaterials.DARK_MATTER, ArmorType.CHESTPLATE, DMArmor::new);
+	public static final ItemRegistryObject<DMArmor> DARK_MATTER_LEGGINGS = ITEMS.registerArmor("dm_leggings", PEArmorMaterials.DARK_MATTER, ArmorType.LEGGINGS, DMArmor::new);
+	public static final ItemRegistryObject<DMArmor> DARK_MATTER_BOOTS = ITEMS.registerArmor("dm_boots", PEArmorMaterials.DARK_MATTER, ArmorType.BOOTS, DMArmor::new);
 
-	public static final ItemRegistryObject<RMArmor> RED_MATTER_HELMET = ITEMS.registerNoStackFireImmune("rm_helmet", properties -> new RMArmor(ArmorItem.Type.HELMET, properties));
-	public static final ItemRegistryObject<RMArmor> RED_MATTER_CHESTPLATE = ITEMS.registerNoStackFireImmune("rm_chestplate", properties -> new RMArmor(ArmorItem.Type.CHESTPLATE, properties));
-	public static final ItemRegistryObject<RMArmor> RED_MATTER_LEGGINGS = ITEMS.registerNoStackFireImmune("rm_leggings", properties -> new RMArmor(ArmorItem.Type.LEGGINGS, properties));
-	public static final ItemRegistryObject<RMArmor> RED_MATTER_BOOTS = ITEMS.registerNoStackFireImmune("rm_boots", properties -> new RMArmor(ArmorItem.Type.BOOTS, properties));
+	public static final ItemRegistryObject<RMArmor> RED_MATTER_HELMET = ITEMS.registerArmor("rm_helmet", PEArmorMaterials.RED_MATTER, ArmorType.HELMET, RMArmor::new);
+	public static final ItemRegistryObject<RMArmor> RED_MATTER_CHESTPLATE = ITEMS.registerArmor("rm_chestplate", PEArmorMaterials.RED_MATTER, ArmorType.CHESTPLATE, RMArmor::new);
+	public static final ItemRegistryObject<RMArmor> RED_MATTER_LEGGINGS = ITEMS.registerArmor("rm_leggings", PEArmorMaterials.RED_MATTER, ArmorType.LEGGINGS, RMArmor::new);
+	public static final ItemRegistryObject<RMArmor> RED_MATTER_BOOTS = ITEMS.registerArmor("rm_boots", PEArmorMaterials.RED_MATTER, ArmorType.BOOTS, RMArmor::new);
 
-	public static final ItemRegistryObject<GemHelmet> GEM_HELMET = ITEMS.registerNoStackFireImmune("gem_helmet", GemHelmet::new);
-	public static final ItemRegistryObject<GemChest> GEM_CHESTPLATE = ITEMS.registerNoStackFireImmune("gem_chestplate", GemChest::new);
-	public static final ItemRegistryObject<GemLegs> GEM_LEGGINGS = ITEMS.registerNoStackFireImmune("gem_leggings", GemLegs::new);
-	public static final ItemRegistryObject<GemFeet> GEM_BOOTS = ITEMS.registerNoStackFireImmune("gem_boots", GemFeet::new);
+	public static final ItemRegistryObject<GemHelmet> GEM_HELMET = ITEMS.registerArmor("gem_helmet", PEArmorMaterials.GEM_ARMOR, ArmorType.HELMET, (type, properties) -> new GemHelmet(properties));
+	public static final ItemRegistryObject<GemChest> GEM_CHESTPLATE = ITEMS.registerArmor("gem_chestplate", PEArmorMaterials.GEM_ARMOR, ArmorType.CHESTPLATE, (type, properties) -> new GemChest(properties));
+	public static final ItemRegistryObject<GemLegs> GEM_LEGGINGS = ITEMS.registerArmor("gem_leggings", PEArmorMaterials.GEM_ARMOR, ArmorType.LEGGINGS, (type, properties) -> new GemLegs(properties));
+	public static final ItemRegistryObject<GemFeet> GEM_BOOTS = ITEMS.registerArmor("gem_boots", PEArmorMaterials.GEM_ARMOR, ArmorType.BOOTS, (type, properties) -> new GemFeet(properties));
 
 	public static final ItemRegistryObject<Item> IRON_BAND = ITEMS.register("iron_band");
 	public static final ItemRegistryObject<BlackHoleBand> BLACK_HOLE_BAND = ITEMS.registerNoStackFireImmune("black_hole_band", BlackHoleBand::new);
@@ -158,6 +168,13 @@ public class PEItems {
 
 	private static ItemRegistryObject<AlchemicalBag> registerBag(DyeColor color) {
 		return ITEMS.registerNoStack(color.getName() + "_alchemical_bag", properties -> new AlchemicalBag(properties, color));
+	}
+
+	private static ItemRegistryObject<Item> registerFuel(String name, int burnTime, UnaryOperator<Item.Properties> propertyModifier) {
+		//26.3 has no fuel registry: AbstractFurnaceBlockEntity reads DataComponents.COOKING_FUEL off the stack instead,
+		//so the burn time is baked into the item rather than registered into a global table.
+		return ITEMS.register(name, Item::new, properties -> propertyModifier.apply(properties).component(DataComponents.COOKING_FUEL,
+				new CookingFuel(new ResolvableInt.Constant(burnTime), new ResolvableFloat.Constant(1.0F))));
 	}
 
 	private static ItemRegistryObject<KleinStar> registerKleinStar(KleinTier tier) {

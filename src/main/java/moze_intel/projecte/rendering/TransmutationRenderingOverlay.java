@@ -8,14 +8,14 @@ import moze_intel.projecte.gameObjs.items.PhilosophersStone;
 import moze_intel.projecte.gameObjs.items.PhilosophersStone.PhilosophersStoneMode;
 import moze_intel.projecte.gameObjs.registries.PEItems;
 import moze_intel.projecte.utils.Constants;
-import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandler;
-import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandlerRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.block.FluidModel;
+import net.minecraft.client.renderer.state.level.BlockOutlineRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -44,23 +44,21 @@ public class TransmutationRenderingOverlay {
 	/**
 	 * Renders the little preview of what the philosopher's stone will transmute the targeted block into, hooked into the hud render callback.
 	 */
-	public void onHudRender(@NotNull GuiGraphics graphics, @NotNull DeltaTracker delta) {
-		if (!mc.options.hideGui && transmutationResult != null) {
+	public void onHudRender(@NotNull GuiGraphicsExtractor graphics, @NotNull DeltaTracker delta) {
+		//26.3 moved the "hide GUI" flag off Options and onto the HUD itself.
+		if (!mc.gui.hud.isHidden() && transmutationResult != null) {
 			if (transmutationResult instanceof LiquidBlock liquidBlock) {
 				FluidState fluidState = liquidBlock.fluid.defaultFluidState();
-				FluidRenderHandler renderHandler = FluidRenderHandlerRegistry.INSTANCE.get(liquidBlock.fluid);
-				if (renderHandler != null) {
-					int color = renderHandler.getFluidColor(null, null, fluidState);
-					float red = (color >> 16 & 0xFF) / 255.0F;
-					float green = (color >> 8 & 0xFF) / 255.0F;
-					float blue = (color & 0xFF) / 255.0F;
-					TextureAtlasSprite sprite = renderHandler.getFluidSprites(null, null, fluidState)[0];
-					graphics.blit(1, 1, 0, 16, 16, sprite, red, green, blue, 1);
-				}
+				//26.3 dropped Fabric's FluidRenderHandler#getFluidColor/getFluidSprites: fluid appearance is now a baked
+				// FluidModel reached through the vanilla model manager, carrying the sprite and the tint source.
+				FluidModel fluidModel = mc.getModelManager().getFluidStateModelSet().get(fluidState);
+				TextureAtlasSprite sprite = fluidModel.stillMaterial().sprite();
+				int color = fluidModel.tintSource().color(transmutationResult.defaultBlockState()) | 0xFF000000;
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, 1, 1, 16, 16, color);
 			} else {
 				//Just render it normally instead of with the given model as some block's don't render properly then as an item
 				// for example glass panes
-				graphics.renderItem(new ItemStack(transmutationResult), 1, 1);
+				graphics.item(new ItemStack(transmutationResult), 1, 1);
 			}
 			long gameTime = mc.level == null ? 0 : mc.level.getGameTime();
 			if (lastGameTime != gameTime) {
@@ -74,12 +72,18 @@ public class TransmutationRenderingOverlay {
 	}
 
 	/**
-	 * Highlights the blocks the philosopher's stone would change and remembers the result for the hud preview, hooked into the block outline render event.
+	 * Highlights the blocks the philosopher's stone would change and remembers the result for the hud preview.
+	 * <p>
+	 * 26.3 removed {@code MultiBufferSource}, {@code WorldRenderContext} and {@code LevelRenderer#renderFace}. The hook now
+	 * receives a {@link LevelRenderContext} carrying the {@link net.minecraft.client.renderer.SubmitNodeCollector} and the
+	 * world {@link PoseStack}, and the overlay quads are emitted by hand through
+	 * {@link net.minecraft.client.renderer.SubmitNodeCollector#submitCustomGeometry}.
 	 *
 	 * @return always true so the vanilla outline still renders.
 	 */
-	public boolean onBlockOutline(WorldRenderContext context, WorldRenderContext.BlockOutlineContext outlineContext) {
-		if (!(outlineContext.entity() instanceof Player player)) {
+	public boolean onBlockOutline(LevelRenderContext context, BlockOutlineRenderState outlineState) {
+		Player player = mc.player;
+		if (player == null) {
 			return true;
 		}
 		Level level = player.level();
@@ -106,32 +110,22 @@ public class TransmutationRenderingOverlay {
 				transmutationResult = null;
 			} else {
 				transmutationResult = changes.values().iterator().next().getBlock();
-				Vec3 viewPosition = context.camera().getPosition();
+				//26.3 renamed Camera#getPosition to position
+				Vec3 viewPosition = mc.gameRenderer.mainCamera().position();
 				float alpha = ProjectEConfig.client.pulsatingOverlay.get() ? getPulseProportion() * 0.60F : 0.35F;
-				MultiBufferSource consumers = context.consumers();
-				if (consumers == null) {
-					return true;
-				}
-				VertexConsumer builder = consumers.getBuffer(PERenderType.TRANSMUTATION_OVERLAY);
-				PoseStack matrix = context.matrixStack();
-				if (matrix == null) {
-					return true;
-				}
 				CollisionContext selectionContext = CollisionContext.of(player);
+				PoseStack pose = context.poseStack();
 				for (BlockPos pos : changes.keySet()) {
 					BlockState state = level.getBlockState(pos);
 					if (!state.isAir()) {
 						VoxelShape shape = state.getShape(level, pos, selectionContext);
 						if (!shape.isEmpty()) {
-							matrix.pushPose();
+							pose.pushPose();
 							//Shift by view position here so that we don't have floating point issues at large values
-							matrix.translate(pos.getX() - viewPosition.x, pos.getY() - viewPosition.y, pos.getZ() - viewPosition.z);
-							shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) -> {
-								for (Direction value : Constants.DIRECTIONS) {
-									LevelRenderer.renderFace(matrix, builder, value, (float) minX, (float) minY, (float) minZ, (float) maxX, (float) maxY, (float) maxZ, 1, 1, 1, alpha);
-								}
-							});
-							matrix.popPose();
+							pose.translate(pos.getX() - viewPosition.x, pos.getY() - viewPosition.y, pos.getZ() - viewPosition.z);
+							context.submitNodeCollector().submitCustomGeometry(pose, PERenderType.TRANSMUTATION_OVERLAY,
+									(poseEntry, consumer) -> emitShape(poseEntry, consumer, shape, alpha));
+							pose.popPose();
 						}
 					}
 				}
@@ -140,6 +134,77 @@ public class TransmutationRenderingOverlay {
 			transmutationResult = null;
 		}
 		return true;
+	}
+
+	/**
+	 * Emits every face of the given shape as two triangles worth of quads.
+	 * <p>
+	 * 26.3 dropped {@code LevelRenderer#renderFace}, so the face winding and the full-bright lighting that helper used to
+	 * apply are reproduced here. Colour is white with the pulsating alpha; the render type is a translucent, unlit quad.
+	 */
+	private static void emitShape(PoseStack.Pose pose, VertexConsumer consumer, VoxelShape shape, float alpha) {
+		int color = ((int) (alpha * 255) << 24) | 0xFFFFFF;
+		shape.forAllBoxes((minX, minY, minZ, maxX, maxY, maxZ) -> {
+			for (Direction direction : Constants.DIRECTIONS) {
+				emitFace(pose, consumer, direction, color, (float) minX, (float) minY, (float) minZ, (float) maxX, (float) maxY, (float) maxZ);
+			}
+		});
+	}
+
+	/**
+	 * Emits a single box face, wound the same way as vanilla so back-face culling does not drop it.
+	 */
+	private static void emitFace(PoseStack.Pose pose, VertexConsumer consumer, Direction direction, int color,
+			float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
+		float x0 = minX, y0 = minY, z0 = minZ, x1 = maxX, y1 = maxY, z1 = maxZ;
+		switch (direction) {
+			case DOWN -> {
+				vertex(pose, consumer, color, x0, y0, z0, 0, 0, 0, -1, 0);
+				vertex(pose, consumer, color, x0, y0, z1, 0, 1, 0, -1, 0);
+				vertex(pose, consumer, color, x1, y0, z1, 1, 1, 0, -1, 0);
+				vertex(pose, consumer, color, x1, y0, z0, 1, 0, 0, -1, 0);
+			}
+			case UP -> {
+				vertex(pose, consumer, color, x0, y1, z0, 0, 0, 0, 1, 0);
+				vertex(pose, consumer, color, x1, y1, z0, 1, 0, 0, 1, 0);
+				vertex(pose, consumer, color, x1, y1, z1, 1, 1, 0, 1, 0);
+				vertex(pose, consumer, color, x0, y1, z1, 0, 1, 0, 1, 0);
+			}
+			case NORTH -> {
+				vertex(pose, consumer, color, x0, y0, z0, 0, 1, 0, 0, -1);
+				vertex(pose, consumer, color, x1, y0, z0, 1, 1, 0, 0, -1);
+				vertex(pose, consumer, color, x1, y1, z0, 1, 0, 0, 0, -1);
+				vertex(pose, consumer, color, x0, y1, z0, 0, 0, 0, 0, -1);
+			}
+			case SOUTH -> {
+				vertex(pose, consumer, color, x0, y0, z1, 1, 1, 0, 0, 1);
+				vertex(pose, consumer, color, x0, y1, z1, 1, 0, 0, 0, 1);
+				vertex(pose, consumer, color, x1, y1, z1, 0, 0, 0, 0, 1);
+				vertex(pose, consumer, color, x1, y0, z1, 0, 1, 0, 0, 1);
+			}
+			case WEST -> {
+				vertex(pose, consumer, color, x0, y0, z0, 1, 1, -1, 0, 0);
+				vertex(pose, consumer, color, x0, y1, z0, 1, 0, -1, 0, 0);
+				vertex(pose, consumer, color, x0, y1, z1, 0, 0, -1, 0, 0);
+				vertex(pose, consumer, color, x0, y0, z1, 0, 1, -1, 0, 0);
+			}
+			case EAST -> {
+				vertex(pose, consumer, color, x1, y0, z0, 0, 1, 1, 0, 0);
+				vertex(pose, consumer, color, x1, y0, z1, 1, 1, 1, 0, 0);
+				vertex(pose, consumer, color, x1, y1, z1, 1, 0, 1, 0, 0);
+				vertex(pose, consumer, color, x1, y1, z0, 0, 0, 1, 0, 0);
+			}
+		}
+	}
+
+	private static void vertex(PoseStack.Pose pose, VertexConsumer consumer, int color, float x, float y, float z,
+			float u, float v, float normalX, float normalY, float normalZ) {
+		consumer.addVertex(pose, x, y, z)
+				.setColor(color)
+				.setUv(u, v)
+				.setOverlay(OverlayTexture.NO_OVERLAY)
+				.setLight(0xF000F0)
+				.setNormal(pose, normalX, normalY, normalZ);
 	}
 
 	private float getPulseProportion() {

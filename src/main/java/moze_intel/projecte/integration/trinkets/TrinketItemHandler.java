@@ -1,9 +1,8 @@
 package moze_intel.projecte.integration.trinkets;
 
-import dev.emi.trinkets.api.TrinketInventory;
+import eu.pb4.trinkets.api.TrinketInventory;
 import java.util.List;
 import moze_intel.projecte.api.item_handlers.IItemHandlerModifiable;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,6 +12,10 @@ import org.jetbrains.annotations.NotNull;
  * accessories. Slots map one-to-one onto the underlying {@link TrinketInventory} containers, so the stacks returned by
  * {@link #getStackInSlot(int)} are the live worn stacks. Callers that mutate one in place must call
  * {@link #markSlotChanged(int)} afterwards, otherwise the change never reaches the client.
+ * <p>
+ * 26.3 note: {@code TrinketInventory} no longer declares {@code markUpdate()} (that method only exists on the
+ * implementation class now). {@link TrinketInventory} is a plain {@link net.minecraft.world.Container}, and its
+ * {@code setChanged()} is what flags the owning attachment to push a sync — so this class talks to the interface only.
  */
 public class TrinketItemHandler implements IItemHandlerModifiable {
 
@@ -53,7 +56,7 @@ public class TrinketItemHandler implements IItemHandlerModifiable {
 		validateSlotIndex(slot);
 		TrinketInventory inventory = slotInventory[slot];
 		inventory.setItem(slotLocalIndex[slot], stack);
-		inventory.markUpdate();
+		inventory.setChanged();
 	}
 
 	@NotNull
@@ -85,7 +88,7 @@ public class TrinketItemHandler implements IItemHandlerModifiable {
 			} else {
 				existing.grow(reachedLimit ? limit : stack.getCount());
 			}
-			inventory.markUpdate();
+			inventory.setChanged();
 		}
 		return reachedLimit ? stack.copyWithCount(stack.getCount() - limit) : ItemStack.EMPTY;
 	}
@@ -107,20 +110,21 @@ public class TrinketItemHandler implements IItemHandlerModifiable {
 		if (existing.getCount() <= toExtract) {
 			if (!simulate) {
 				inventory.setItem(local, ItemStack.EMPTY);
-				inventory.markUpdate();
+				inventory.setChanged();
 			}
 			return existing.copy();
 		}
 		if (!simulate) {
 			inventory.setItem(local, existing.copyWithCount(existing.getCount() - toExtract));
-			inventory.markUpdate();
+			inventory.setChanged();
 		}
 		return existing.copyWithCount(toExtract);
 	}
 
 	@Override
 	public int getSlotLimit(int slot) {
-		return Item.ABSOLUTE_MAX_STACK_SIZE;
+		//See ItemStackHandler#getSlotLimit: a fixed 99 would cap stacks that a stacking mod raised past 99
+		return Integer.MAX_VALUE;
 	}
 
 	@Override
@@ -131,9 +135,9 @@ public class TrinketItemHandler implements IItemHandlerModifiable {
 	@Override
 	public void markSlotChanged(int slot) {
 		validateSlotIndex(slot);
-		//markUpdate registers this inventory with the component's trackingUpdates set, which LivingEntity's tick
-		// drains into a sync packet. Container#setChanged is a no-op on TrinketInventory and will not sync.
-		slotInventory[slot].markUpdate();
+		//setChanged is what registers the inventory with its attachment's dirty set, which then gets drained into a sync
+		// packet. Writing the stack back through setItem marks it too, but in-place mutations need this explicit call.
+		slotInventory[slot].setChanged();
 	}
 
 	private void validateSlotIndex(int slot) {

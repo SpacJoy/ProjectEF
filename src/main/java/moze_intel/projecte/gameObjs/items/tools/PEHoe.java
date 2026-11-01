@@ -5,25 +5,25 @@ import moze_intel.projecte.gameObjs.IMatterType;
 import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
-import moze_intel.projecte.utils.ItemHelper;
 import moze_intel.projecte.utils.ToolHelper;
-import net.minecraft.core.Holder;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.HoeItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
-public class PEHoe extends HoeItem implements IItemCharge, IBarHelper, IEnchantableEquipment {
+public class PEHoe extends Item implements IItemCharge, IBarHelper, IEnchantableEquipment {
 
 	private final IMatterType matterType;
 	private final int numCharges;
 
+	/**
+	 * 26.3 deleted {@code HoeItem}: tilling is data driven now, so only the tool component has to be rebuilt, and the
+	 * hoe branch of {@code Item.Properties} already uses the matter's own speed/attack numbers.
+	 */
 	public PEHoe(IMatterType matterType, int numCharges, Properties props) {
-		super(matterType, props.attributes(createAttributes(matterType, -matterType.getAttackDamageBonus(), matterType.getMatterTier()))
+		super(matterType.applyHoe(props, -matterType.getAttackDamageBonus(), matterType.getMatterTier())
 				.component(PEDataComponentTypes.CHARGE.get(), 0)
 				.component(PEDataComponentTypes.STORED_EMC.get(), 0L)
 		);

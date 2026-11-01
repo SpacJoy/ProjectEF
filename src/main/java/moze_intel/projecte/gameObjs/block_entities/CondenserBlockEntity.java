@@ -1,6 +1,5 @@
 package moze_intel.projecte.gameObjs.block_entities;
 
-import com.mojang.serialization.DataResult;
 import moze_intel.projecte.api.ItemInfo;
 import moze_intel.projecte.api.event.PlayerAttemptCondenserSetEvent;
 import moze_intel.projecte.api.proxy.IEMCProxy;
@@ -13,10 +12,6 @@ import moze_intel.projecte.gameObjs.registries.PEBlocks;
 import moze_intel.projecte.utils.text.TextComponentUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -30,6 +25,8 @@ import moze_intel.projecte.api.item_handlers.ItemHandlerHelper;
 import moze_intel.projecte.api.item_handlers.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class CondenserBlockEntity extends EmcChestBlockEntity implements PEWorldlyContainer {
 
@@ -68,7 +65,7 @@ public class CondenserBlockEntity extends EmcChestBlockEntity implements PEWorld
 	@Nullable
 	public final ItemInfo getLockInfo() {
 		if (requiredEmc == 0) {
-			if (level == null || !level.isClientSide) {
+			if (level == null || !level.isClientSide()) {
 				//If the lock doesn't have EMC don't tell the client it is there
 				return null;
 			}
@@ -194,7 +191,7 @@ public class CondenserBlockEntity extends EmcChestBlockEntity implements PEWorld
 	}
 
 	private boolean attemptCondenserSet(@NotNull Level level, @NotNull BlockPos pos, Player player) {
-		if (level.isClientSide) {
+		if (level.isClientSide()) {
 			return false;
 		}
 		if (getLockInfo() == null) {
@@ -225,25 +222,19 @@ public class CondenserBlockEntity extends EmcChestBlockEntity implements PEWorld
 	}
 
 	@Override
-	public void loadAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.loadAdditional(tag, registries);
-		inputInventory.deserializeNBT(registries, tag.getCompound("input"));
-		if (tag.contains("lock")) {
-			lockInfo = ItemInfo.CODEC.parse(registries.createSerializationContext(NbtOps.INSTANCE), tag.get("lock")).result().orElse(null);
-		} else {
-			lockInfo = null;
-		}
+	public void loadAdditional(@NotNull ValueInput input) {
+		super.loadAdditional(input);
+		input.child("input").ifPresent(inputInventory::deserialize);
+		//26.3: ValueInput carries the registry lookups, so the lock codec decodes straight off the node.
+		lockInfo = input.read("lock", ItemInfo.CODEC).orElse(null);
 	}
 
 	@Override
-	protected void saveAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.saveAdditional(tag, registries);
-		tag.put("input", inputInventory.serializeNBT(registries));
+	protected void saveAdditional(@NotNull ValueOutput output) {
+		super.saveAdditional(output);
+		inputInventory.serialize(output.child("input"));
 		if (lockInfo != null) {
-			DataResult<Tag> result = ItemInfo.CODEC.encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), lockInfo);
-			if (result.isSuccess()) {
-				tag.put("lock", result.getOrThrow());
-			}
+			output.store("lock", ItemInfo.CODEC, lockInfo);
 		}
 	}
 

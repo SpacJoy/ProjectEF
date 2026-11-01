@@ -12,8 +12,6 @@ import moze_intel.projecte.gameObjs.registries.PEBlockEntityTypes;
 import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -29,6 +27,8 @@ import moze_intel.projecte.api.item_handlers.ItemStackHandler;
 import moze_intel.projecte.api.item_handlers.CombinedInvWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class RelayMK1BlockEntity extends EmcBlockEntity implements MenuProvider, IRelay , PEWorldlyContainer{
 
@@ -173,19 +173,20 @@ public class RelayMK1BlockEntity extends EmcBlockEntity implements MenuProvider,
 	}
 
 	@Override
-	public void loadAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.loadAdditional(tag, registries);
-		input.deserializeNBT(registries, tag.getCompound("input"));
-		output.deserializeNBT(registries, tag.getCompound("output"));
-		bonusEMC = tag.getDouble("bonus_emc");
+	public void loadAdditional(@NotNull ValueInput input) {
+		super.loadAdditional(input);
+		input.child("input").ifPresent(this.input::deserialize);
+		input.child("output").ifPresent(output::deserialize);
+		bonusEMC = input.getDoubleOr("bonus_emc", 0.0D);
 	}
 
 	@Override
-	protected void saveAdditional(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
-		super.saveAdditional(tag, registries);
-		tag.put("input", input.serializeNBT(registries));
-		tag.put("output", output.serializeNBT(registries));
-		tag.putDouble("bonus_emc", bonusEMC);
+	protected void saveAdditional(@NotNull ValueOutput output) {
+		super.saveAdditional(output);
+		input.serialize(output.child("input"));
+		//26.3: the output parameter shadows our own output inventory field, so it has to be qualified
+		this.output.serialize(output.child("output"));
+		output.putDouble("bonus_emc", bonusEMC);
 	}
 
 	@Override

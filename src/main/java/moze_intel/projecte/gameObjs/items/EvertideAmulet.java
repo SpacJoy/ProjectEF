@@ -28,6 +28,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -39,7 +40,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraft.world.level.storage.ServerLevelData;
+import net.minecraft.world.level.saveddata.WeatherData;
 import org.jetbrains.annotations.NotNull;
 
 public class EvertideAmulet extends ItemPE implements IProjectileShooter, IPedestalItem, ICapabilityAware {
@@ -57,7 +58,7 @@ public class EvertideAmulet extends ItemPE implements IProjectileShooter, IPedes
 		}
 		Level level = ctx.getLevel();
 		BlockPos pos = ctx.getClickedPos();
-		if (!level.isClientSide && PlayerHelper.hasEditPermission(player, level, pos)) {
+		if (!level.isClientSide() && PlayerHelper.hasEditPermission(player, level, pos)) {
 			Direction sideHit = ctx.getClickedFace();
 			Storage<FluidVariant> fluidStorage = WorldHelper.getCapability(level, FluidStorage.SIDED, pos, sideHit);
 			if (fluidStorage != null) {
@@ -70,13 +71,13 @@ public class EvertideAmulet extends ItemPE implements IProjectileShooter, IPedes
 			WorldHelper.placeFluid(player, level, pos, sideHit, Fluids.WATER, !ProjectEConfig.server.items.opEvertide.get());
 			level.playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.WATER_MAGIC.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 		}
-		return InteractionResult.sidedSuccess(level.isClientSide);
+		return (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 	}
 
 	@Override
 	public boolean shootProjectile(@NotNull Player player, @NotNull ItemStack stack, InteractionHand hand) {
 		Level level = player.level();
-		if (ProjectEConfig.server.items.opEvertide.get() || !level.dimensionType().ultraWarm()) {
+		if (ProjectEConfig.server.items.opEvertide.get() || !level.environmentAttributes().getDimensionValue(net.minecraft.world.attribute.EnvironmentAttributes.WATER_EVAPORATES)) {
 			level.playSound(null, player.getX(), player.getY(), player.getZ(), PESoundEvents.WATER_MAGIC.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 			EntityWaterProjectile ent = new EntityWaterProjectile(player, level);
 			ent.shootFromRotation(player, player.getXRot(), player.getYRot(), 0, 1.5F, 1);
@@ -87,21 +88,23 @@ public class EvertideAmulet extends ItemPE implements IProjectileShooter, IPedes
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
-		tooltip.add(PELang.TOOLTIP_EVERTIDE_1.translate(ClientKeyHelper.getKeyName(PEKeybind.FIRE_PROJECTILE)));
-		tooltip.add(PELang.TOOLTIP_EVERTIDE_2.translate());
-		tooltip.add(PELang.TOOLTIP_EVERTIDE_3.translate());
-		tooltip.add(PELang.TOOLTIP_EVERTIDE_4.translate());
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
+		tooltip.accept(PELang.TOOLTIP_EVERTIDE_1.translate(ClientKeyHelper.getKeyName(PEKeybind.FIRE_PROJECTILE)));
+		tooltip.accept(PELang.TOOLTIP_EVERTIDE_2.translate());
+		tooltip.accept(PELang.TOOLTIP_EVERTIDE_3.translate());
+		tooltip.accept(PELang.TOOLTIP_EVERTIDE_4.translate());
 	}
 
 	@Override
 	public <PEDESTAL extends BlockEntity & IDMPedestal> boolean updateInPedestal(@NotNull ItemStack stack, @NotNull Level level, @NotNull BlockPos pos,
 			@NotNull PEDESTAL pedestal) {
-		if (!level.isClientSide && ProjectEConfig.server.cooldown.pedestal.evertide.get() != -1) {
+		if (!level.isClientSide() && ProjectEConfig.server.cooldown.pedestal.evertide.get() != -1) {
 			if (pedestal.getActivityCooldown() == 0) {
-				if (level.getLevelData() instanceof ServerLevelData worldInfo) {
-					int i = (300 + level.random.nextInt(600)) * SharedConstants.TICKS_PER_SECOND;
+				//26.3 moved the weather flags off LevelData and onto the per level WeatherData saved data.
+				if (level instanceof ServerLevel serverLevel) {
+					WeatherData worldInfo = serverLevel.getWeatherData();
+					int i = (300 + level.getRandom().nextInt(600)) * SharedConstants.TICKS_PER_SECOND;
 					worldInfo.setRainTime(i);
 					worldInfo.setThunderTime(i);
 					worldInfo.setRaining(true);

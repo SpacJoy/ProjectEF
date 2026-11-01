@@ -1,24 +1,22 @@
 package moze_intel.projecte.gameObjs.registration;
 
-import com.mojang.datafixers.util.Either;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderOwner;
 import net.minecraft.core.Registry;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * A lazily bound holder for a registry object. Mirrors the behavior the NeoForge DeferredHolder used to provide: created up front, bound when the owning
  * {@link PEDeferredRegister} performs the actual registration against the vanilla registry.
+ *
+ * <p>26.3 turned {@link Holder} into a sealed interface that only permits {@code Holder$Direct} and {@code Holder$Reference}, so this class can no longer
+ * implement it. Use {@link #asReference()} wherever a real vanilla holder is required.
  */
-public class PEDeferredHolder<R, T extends R> implements Holder<R>, INamedEntry, Supplier<T> {
+public class PEDeferredHolder<R, T extends R> implements INamedEntry, Supplier<T> {
 
 	private final ResourceKey<R> key;
 	@Nullable
@@ -26,7 +24,7 @@ public class PEDeferredHolder<R, T extends R> implements Holder<R>, INamedEntry,
 	@Nullable
 	private Holder.Reference<R> reference;
 
-	public PEDeferredHolder(ResourceKey<? extends Registry<R>> registryKey, ResourceLocation valueName) {
+	public PEDeferredHolder(ResourceKey<? extends Registry<R>> registryKey, Identifier valueName) {
 		this(ResourceKey.create(registryKey, valueName));
 	}
 
@@ -42,7 +40,11 @@ public class PEDeferredHolder<R, T extends R> implements Holder<R>, INamedEntry,
 		this.reference = reference;
 	}
 
-	protected Holder.Reference<R> boundReference() {
+	/**
+	 * @return The vanilla holder this object was bound to.
+	 */
+	@NotNull
+	public Holder.Reference<R> asReference() {
 		if (reference == null) {
 			throw new IllegalStateException("Registry object not present: " + key + ". Was the owning register's register() method called yet?");
 		}
@@ -58,7 +60,6 @@ public class PEDeferredHolder<R, T extends R> implements Holder<R>, INamedEntry,
 	}
 
 	@NotNull
-	@Override
 	public T value() {
 		if (value == null) {
 			throw new IllegalStateException("Registry object not present: " + key + ". Was the owning register's register() method called yet?");
@@ -66,8 +67,8 @@ public class PEDeferredHolder<R, T extends R> implements Holder<R>, INamedEntry,
 		return value;
 	}
 
-	public ResourceLocation getId() {
-		return key.location();
+	public Identifier getId() {
+		return key.identifier();
 	}
 
 	public ResourceKey<R> getKey() {
@@ -83,63 +84,8 @@ public class PEDeferredHolder<R, T extends R> implements Holder<R>, INamedEntry,
 		return getId().getPath();
 	}
 
-	@Override
 	public boolean isBound() {
 		return value != null;
-	}
-
-	@Override
-	public boolean is(@NotNull ResourceLocation id) {
-		return id.equals(key.location());
-	}
-
-	@Override
-	public boolean is(@NotNull ResourceKey<R> key) {
-		return key == this.key;
-	}
-
-	@Override
-	public boolean is(@NotNull Predicate<ResourceKey<R>> predicate) {
-		return predicate.test(key);
-	}
-
-	@Override
-	public boolean is(@NotNull TagKey<R> tag) {
-		return boundReference().is(tag);
-	}
-
-	@Override
-	public boolean is(@NotNull Holder<R> holder) {
-		return holder.is(key.location());
-	}
-
-	@NotNull
-	@Override
-	public Stream<TagKey<R>> tags() {
-		return boundReference().tags();
-	}
-
-	@NotNull
-	@Override
-	public Either<ResourceKey<R>, R> unwrap() {
-		return Either.left(key);
-	}
-
-	@NotNull
-	@Override
-	public Optional<ResourceKey<R>> unwrapKey() {
-		return Optional.of(key);
-	}
-
-	@NotNull
-	@Override
-	public Kind kind() {
-		return Kind.REFERENCE;
-	}
-
-	@Override
-	public boolean canSerializeIn(@NotNull HolderOwner<R> owner) {
-		return reference != null && reference.canSerializeIn(owner);
 	}
 
 	@Override

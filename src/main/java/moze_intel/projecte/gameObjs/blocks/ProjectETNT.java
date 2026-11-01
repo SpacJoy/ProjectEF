@@ -4,11 +4,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.dispenser.BlockSource;
 import net.minecraft.core.dispenser.DefaultDispenseItemBehavior;
 import net.minecraft.core.dispenser.DispenseItemBehavior;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.PrimedTnt;
@@ -24,6 +25,7 @@ import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.TntBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -73,33 +75,34 @@ public class ProjectETNT extends TntBlock {
 
 	@NotNull
 	@Override
-	protected ItemInteractionResult useItemOn(@NotNull ItemStack stack, @NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
+	protected InteractionResult useItemOn(@NotNull ItemStack stack, @NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
 			@NotNull Player player, @NotNull InteractionHand hand, @NotNull BlockHitResult hitResult) {
 		if (!stack.is(Items.FLINT_AND_STEEL) && !stack.is(Items.FIRE_CHARGE)) {
 			return super.useItemOn(stack, state, level, pos, player, hand, hitResult);
 		} else {
 			//[VanillaCopy] TntBlock.useItemOn, except we spawn the custom ProjectEF entity
-			if (!level.isClientSide) {
+			if (!level.isClientSide()) {
 				createAndAddEntity(level, pos, player);
 			}
 			level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL_IMMEDIATE);
 			if (stack.is(Items.FLINT_AND_STEEL)) {
-				stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+				stack.hurtAndBreak(1, player, hand);
 			} else {
 				stack.consume(1, player);
 			}
 			player.awardStat(Stats.ITEM_USED.get(stack.getItem()));
-			return ItemInteractionResult.sidedSuccess(level.isClientSide);
+			return (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 		}
 	}
 
 	@Override
 	protected void onProjectileHit(@NotNull Level level, @NotNull BlockState state, @NotNull BlockHitResult hit, @NotNull Projectile projectile) {
 		//[VanillaCopy] TntBlock.onProjectileHit, except we spawn the custom ProjectEF entity
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			BlockPos pos = hit.getBlockPos();
 			Entity owner = projectile.getOwner();
-			if (projectile.isOnFire() && projectile.mayInteract(level, pos)) {
+			//26.3: Entity#mayInteract only accepts a ServerLevel
+			if (level instanceof ServerLevel serverLevel && projectile.isOnFire() && projectile.mayInteract(serverLevel, pos)) {
 				createAndAddEntity(level, pos, owner instanceof LivingEntity livingentity ? livingentity : null);
 				level.removeBlock(pos, false);
 			}
@@ -108,10 +111,10 @@ public class ProjectETNT extends TntBlock {
 
 	@Override
 	protected void neighborChanged(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Block neighborBlock,
-			@NotNull BlockPos neighborPos, boolean movedByPiston) {
+			@NotNull Orientation orientation, boolean movedByPiston) {
 		//[VanillaCopy] TntBlock.neighborChanged, except we spawn the custom ProjectEF entity
 		if (level.hasNeighborSignal(pos)) {
-			if (!level.isClientSide) {
+			if (!level.isClientSide()) {
 				createAndAddEntity(level, pos, null);
 			}
 			level.removeBlock(pos, false);
@@ -123,7 +126,7 @@ public class ProjectETNT extends TntBlock {
 		//[VanillaCopy] TntBlock.onPlace, except we spawn the custom ProjectEF entity
 		if (!oldState.is(state.getBlock())) {
 			if (level.hasNeighborSignal(pos)) {
-				if (!level.isClientSide) {
+				if (!level.isClientSide()) {
 					createAndAddEntity(level, pos, null);
 				}
 				level.removeBlock(pos, false);
@@ -142,13 +145,12 @@ public class ProjectETNT extends TntBlock {
 	}
 
 	@Override
-	public void wasExploded(Level level, @NotNull BlockPos pos, @NotNull Explosion explosion) {
-		if (!level.isClientSide) {
-			PrimedTnt tnt = tntEntityCreator.create(level, (float) pos.getX() + 0.5F, pos.getY(), (float) pos.getZ() + 0.5F, explosion.getIndirectSourceEntity());
-			int fuse = tnt.getFuse();
-			tnt.setFuse((short) (level.random.nextInt(fuse / 4) + fuse / 8));
-			level.addFreshEntity(tnt);
-		}
+	//26.3: Block#wasExploded only runs on the server, so it takes a ServerLevel directly
+	public void wasExploded(@NotNull ServerLevel level, @NotNull BlockPos pos, @NotNull Explosion explosion) {
+		PrimedTnt tnt = tntEntityCreator.create(level, (float) pos.getX() + 0.5F, pos.getY(), (float) pos.getZ() + 0.5F, explosion.getIndirectSourceEntity());
+		int fuse = tnt.getFuse();
+		tnt.setFuse((short) (level.getRandom().nextInt(fuse / 4) + fuse / 8));
+		level.addFreshEntity(tnt);
 	}
 
 	@FunctionalInterface

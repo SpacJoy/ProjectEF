@@ -7,11 +7,11 @@ import moze_intel.projecte.network.packets.IPEPacket;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.NotNull;
 
-public record EMCManagerRequestPKT(int requestId, Action action, ResourceLocation item, long value, long expectedValue) implements IPEPacket {
+public record EMCManagerRequestPKT(int requestId, Action action, Identifier item, long value, long expectedValue) implements IPEPacket {
 
 	public enum Action {
 		QUERY, SET, REMOVE, RESET, APPLY, RESET_MOD,
@@ -25,14 +25,14 @@ public record EMCManagerRequestPKT(int requestId, Action action, ResourceLocatio
 	public static final StreamCodec<RegistryFriendlyByteBuf, EMCManagerRequestPKT> STREAM_CODEC = new StreamCodec<>() {
 		@Override
 		public EMCManagerRequestPKT decode(RegistryFriendlyByteBuf buffer) {
-			return new EMCManagerRequestPKT(buffer.readVarInt(), buffer.readEnum(Action.class), buffer.readResourceLocation(), buffer.readLong(), buffer.readLong());
+			return new EMCManagerRequestPKT(buffer.readVarInt(), buffer.readEnum(Action.class), buffer.readIdentifier(), buffer.readLong(), buffer.readLong());
 		}
 
 		@Override
 		public void encode(RegistryFriendlyByteBuf buffer, EMCManagerRequestPKT packet) {
 			buffer.writeVarInt(packet.requestId);
 			buffer.writeEnum(packet.action);
-			buffer.writeResourceLocation(packet.item);
+			buffer.writeIdentifier(packet.item);
 			buffer.writeLong(packet.value);
 			buffer.writeLong(packet.expectedValue);
 		}

@@ -1,6 +1,7 @@
 package moze_intel.projecte.client;
 
 import moze_intel.projecte.PECore;
+import moze_intel.projecte.events.ToolTipEvent;
 import moze_intel.projecte.gameObjs.container.DMFurnaceContainer;
 import moze_intel.projecte.gameObjs.entity.EntitySWRGProjectile;
 import moze_intel.projecte.gameObjs.gui.AbstractCollectorScreen;
@@ -18,10 +19,8 @@ import moze_intel.projecte.gameObjs.gui.GUITransmutation;
 import moze_intel.projecte.gameObjs.registries.PEBlockEntityTypes;
 import moze_intel.projecte.gameObjs.registries.PEBlocks;
 import moze_intel.projecte.gameObjs.registries.PEContainerTypes;
-import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.gameObjs.registries.PEEntityTypes;
 import moze_intel.projecte.gameObjs.registries.PEItems;
-import moze_intel.projecte.events.ToolTipEvent;
 import moze_intel.projecte.gameObjs.sound.MovingSoundSWRG;
 import moze_intel.projecte.network.PacketHandler;
 import moze_intel.projecte.network.PacketHandler.ClientboundRegistration;
@@ -34,33 +33,25 @@ import moze_intel.projecte.rendering.PedestalRenderer;
 import moze_intel.projecte.rendering.TransmutationRenderingOverlay;
 import moze_intel.projecte.utils.ClientKeyHelper;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.event.client.player.ClientPreAttackCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityRenderLayerRegistrationCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import net.fabricmc.fabric.api.event.client.player.ClientPreAttackCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.client.renderer.entity.TippableArrowRenderer;
 import net.minecraft.client.renderer.entity.TntRenderer;
-import net.minecraft.client.renderer.entity.player.PlayerRenderer;
-import net.minecraft.client.renderer.item.ClampedItemPropertyFunction;
-import net.minecraft.client.renderer.item.ItemProperties;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.ItemLike;
+import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.HitResult;
 
 public class PECoreClient implements ClientModInitializer {
-
-	public static final ResourceLocation ACTIVE_OVERRIDE = PECore.rl("active");
-	public static final ResourceLocation MODE_OVERRIDE = PECore.rl("mode");
 
 	@Override
 	public void onInitializeClient() {
@@ -71,9 +62,7 @@ public class PECoreClient implements ClientModInitializer {
 		EMCManagerClient.register();
 		registerOverlays();
 		registerRenderers();
-		registerBlockRenderLayers();
 		addLayers();
-		registerItemProperties();
 		DumpMissingEmc.registerClientCommand();
 
 		ClientEntityEvents.ENTITY_LOAD.register((entity, level) -> {
@@ -83,7 +72,14 @@ public class PECoreClient implements ClientModInitializer {
 		});
 
 		ItemTooltipCallback.EVENT.register((stack, tooltipContext, tooltipFlag, lines) ->
-				ToolTipEvent.onTooltip(lines, stack, Minecraft.getInstance().player, Screen.hasShiftDown()));
+				ToolTipEvent.onTooltip(lines, stack, Minecraft.getInstance().player, Minecraft.getInstance().hasShiftDown()));
+
+		//26.3 only calls Item#inventoryTick on the server, so the gem boots flight assist moved here
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			if (client.player != null) {
+				GemFeetClientTick.tick(client.player);
+			}
+		});
 
 		//Left clicking into empty air with the archangel smite fires a volley, handled server side through the existing packet
 		ClientPreAttackCallback.EVENT.register((client, player, clickCount) -> {
@@ -124,26 +120,17 @@ public class PECoreClient implements ClientModInitializer {
 		MenuScreens.register(PEContainerTypes.MERCURIAL_EYE_CONTAINER.get(), GUIMercurialEye::new);
 	}
 
-	private void registerItemProperties() {
-		//Property Overrides
-		addPropertyOverrides(ACTIVE_OVERRIDE, (stack, level, entity, seed) -> stack.getOrDefault(PEDataComponentTypes.ACTIVE.get(), false) ? 1F : 0F,
-				PEItems.GEM_OF_ETERNAL_DENSITY, PEItems.VOID_RING, PEItems.ARCANA_RING, PEItems.ARCHANGEL_SMITE, PEItems.BLACK_HOLE_BAND, PEItems.BODY_STONE,
-				PEItems.HARVEST_GODDESS_BAND, PEItems.IGNITION_RING, PEItems.LIFE_STONE, PEItems.MIND_STONE, PEItems.SOUL_STONE, PEItems.WATCH_OF_FLOWING_TIME,
-				PEItems.ZERO_RING);
-		addPropertyOverrides(MODE_OVERRIDE, (stack, level, entity, seed) ->
-				stack.getOrDefault(PEDataComponentTypes.ARCANA_MODE.get(), PEItems.ARCANA_RING.asItem().getDefaultMode()).ordinal(), PEItems.ARCANA_RING);
-		addPropertyOverrides(MODE_OVERRIDE, (stack, level, entity, seed) ->
-				stack.getOrDefault(PEDataComponentTypes.SWRG_MODE.get(), PEItems.ARCANA_RING.asItem().getDefaultMode()).ordinal(), PEItems.SWIFTWOLF_RENDING_GALE);
-	}
-
 	private void registerKeybindings() {
 		ClientKeyHelper.registerKeyBindings();
 	}
 
 	private void registerOverlays() {
 		TransmutationRenderingOverlay overlay = new TransmutationRenderingOverlay();
-		WorldRenderEvents.BLOCK_OUTLINE.register(overlay::onBlockOutline);
-		HudRenderCallback.EVENT.register(overlay::onHudRender);
+		//26.3 split WorldRenderEvents into LevelRenderEvents (drawing) and LevelExtractionEvents (state collection).
+		// BEFORE_BLOCK_OUTLINE fires while the outline is still being drawn and hands out the submit node collector.
+		LevelRenderEvents.BEFORE_BLOCK_OUTLINE.register(overlay::onBlockOutline);
+		//HudRenderCallback was replaced by the element based HudElementRegistry.
+		HudElementRegistry.addLast(PECore.rl("transmutation_overlay"), overlay::onHudRender);
 	}
 
 	private void registerRenderers() {
@@ -166,33 +153,17 @@ public class PECoreClient implements ClientModInitializer {
 	}
 
 	/**
-	 * Assigns block render layers explicitly.
+	 * Registers the extra render layers ProjectE adds to players.
 	 * <p>
-	 * NeoForge selects a block model's render layer from the {@code "render_type"} field inside the model JSON. Fabric
-	 * has no equivalent: the field is a NeoForge extension and is silently ignored by the vanilla/Fabric model loader,
-	 * and any block that is not registered here falls back to the {@code solid} render layer. The solid layer performs
-	 * neither an alpha test nor alpha blending and samples the mipmapped block atlas, so the fully transparent parts of
-	 * a cutout texture get averaged with the neighbour colours (MC's mipmap generation averages colours weighted by
-	 * alpha) and are then drawn opaque. The interdiction torch is such a cutout model, which made it render as a solid
-	 * green blob instead of a torch.
+	 * 26.3 renamed the callback to {@link LivingEntityRenderLayerRegistrationCallback} and turned the player renderer
+	 * into {@link AvatarRenderer}; the old {@code ItemProperties}/block render layer registrations are gone because
+	 * item models and block render layers are both resolved from resources now.
 	 */
-	private void registerBlockRenderLayers() {
-		BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(),
-				PEBlocks.INTERDICTION_TORCH.getBlock(), PEBlocks.INTERDICTION_TORCH.getWallBlock());
-	}
-
 	private void addLayers() {
-		LivingEntityFeatureRendererRegistrationCallback.EVENT.register((entityType, renderer, registrationHelper, context) -> {
-			if (renderer instanceof PlayerRenderer playerRenderer) {
-				registrationHelper.register(new LayerYue(playerRenderer));
+		LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, registrationHelper, context) -> {
+			if (renderer instanceof AvatarRenderer<?> avatarRenderer) {
+				registrationHelper.register(new LayerYue(avatarRenderer));
 			}
 		});
-	}
-
-	@SuppressWarnings("deprecation")
-	private static void addPropertyOverrides(ResourceLocation override, ClampedItemPropertyFunction propertyGetter, ItemLike... itemProviders) {
-		for (ItemLike itemProvider : itemProviders) {
-			ItemProperties.register(itemProvider.asItem(), override, propertyGetter);
-		}
 	}
 }

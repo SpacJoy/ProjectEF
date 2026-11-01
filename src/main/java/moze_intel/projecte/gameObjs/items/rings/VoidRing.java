@@ -31,9 +31,9 @@ public class VoidRing extends GemEternalDensity implements IPedestalItem, IExtra
 	}
 
 	@Override
-	public void inventoryTick(@NotNull ItemStack stack, @NotNull Level level, @NotNull Entity entity, int slot, boolean isHeld) {
-		super.inventoryTick(stack, level, entity, slot, isHeld);
-		PEItems.BLACK_HOLE_BAND.get().inventoryTick(stack, level, entity, slot, isHeld);
+	public void inventoryTick(@NotNull ItemStack stack, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull Entity entity, @NotNull net.minecraft.world.entity.EquipmentSlot slot) {
+		super.inventoryTick(stack, level, entity, slot);
+		PEItems.BLACK_HOLE_BAND.get().inventoryTick(stack, level, entity, slot);
 	}
 
 	@Override
@@ -51,7 +51,7 @@ public class VoidRing extends GemEternalDensity implements IPedestalItem, IExtra
 	@Override
 	public boolean doExtraFunction(@NotNull Player player, @NotNull ItemStack stack, InteractionHand hand) {
 		ItemCooldowns cooldowns = player.getCooldowns();
-		if (cooldowns.isOnCooldown(this)) {
+		if (cooldowns.isOnCooldown(stack)) {
 			return false;
 		}
 		BlockHitResult lookingAt = PlayerHelper.getBlockLookingAt(player, 64);
@@ -67,7 +67,7 @@ public class VoidRing extends GemEternalDensity implements IPedestalItem, IExtra
 		player.resetFallDistance();
 		player.teleportTo(c.getX() + 0.5, c.getY(), c.getZ() + 0.5);
 		player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1, 1);
-		cooldowns.addCooldown(this, SharedConstants.TICKS_PER_SECOND / 2);
+		cooldowns.addCooldown(stack, SharedConstants.TICKS_PER_SECOND / 2);
 		return true;
 	}
 

@@ -21,7 +21,8 @@ public record GemData(boolean isWhitelist, Set<ItemStack> whitelist, List<ItemSt
 
 	public static final Codec<GemData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.BOOL.fieldOf("isWhitelist").forGetter(GemData::isWhitelist),
-			ItemStack.SINGLE_ITEM_CODEC.sizeLimitedListOf(9).promotePartial(error -> PECore.LOGGER.error("Failed to load gem whitelist: {}", error)).<Set<ItemStack>>xmap(list -> {
+			//26.3 removed ItemStack.SINGLE_ITEM_CODEC; the plain CODEC already carries the stack data
+			ItemStack.CODEC.sizeLimitedListOf(9).promotePartial(error -> PECore.LOGGER.error("Failed to load gem whitelist: {}", error)).<Set<ItemStack>>xmap(list -> {
 				if (list.isEmpty()) {
 					return Collections.emptySet();
 				}
@@ -46,7 +47,8 @@ public record GemData(boolean isWhitelist, Set<ItemStack> whitelist, List<ItemSt
 							return set;
 						})
 			), GemData::whitelist,
-			ItemStack.LIST_STREAM_CODEC, GemData::consumed,
+			//26.3 renamed LIST_STREAM_CODEC to OPTIONAL_LIST_STREAM_CODEC (the list entries tolerate empty stacks)
+			ItemStack.OPTIONAL_LIST_STREAM_CODEC, GemData::consumed,
 			GemData::new
 	);
 

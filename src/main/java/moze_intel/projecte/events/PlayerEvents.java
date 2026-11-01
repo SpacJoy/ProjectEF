@@ -13,7 +13,7 @@ import moze_intel.projecte.gameObjs.items.armor.PEArmor.ReductionInfo;
 import moze_intel.projecte.impl.TransmutationOffline;
 import moze_intel.projecte.utils.PlayerHelper;
 import moze_intel.projecte.utils.text.PELang;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
@@ -23,6 +23,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -34,7 +36,7 @@ public class PlayerEvents {
 		// On death or return from end, sync to the client
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> syncData(newPlayer));
 		// Sync to the client for "normal" interdimensional teleports (nether portal, etc.)
-		ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> syncData(player));
+		ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register((player, origin, destination) -> syncData(player));
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> onPlayerConnect(handler.player, server));
 	}
 
@@ -79,10 +81,10 @@ public class PlayerEvents {
 	 * @return true if the pickup was handled by a bag and vanilla pickup handling should be skipped.
 	 */
 	public static boolean onItemPickup(ItemEntity itemEntity, Player player) {
-		if (itemEntity.level().isClientSide || itemEntity.hasPickUpDelay()) {
+		if (itemEntity.level().isClientSide() || itemEntity.hasPickUpDelay()) {
 			return false;
 		}
-		ItemStack bag = AlchemicalBag.getFirstBagWithSuctionItem(player, player.getInventory().items);
+		ItemStack bag = AlchemicalBag.getFirstBagWithSuctionItem(player, player.getInventory().getNonEquipmentItems());
 		if (!bag.isEmpty()) {
 			IAlchBagProvider bagProvider = PECapabilities.ALCH_BAG_CAPABILITY.find(player);
 			if (bagProvider != null) {
@@ -119,7 +121,9 @@ public class PlayerEvents {
 	 */
 	public static ReductionInfo getArmorReduction(LivingEntity entity, DamageSource source) {
 		ReductionInfo reductionInfo = ReductionInfo.ZERO;
-		for (ItemStack armorStack : entity.getArmorSlots()) {
+		//26.3 removed LivingEntity#getArmorSlots; iterate the armor equipment slot group instead
+		for (EquipmentSlot slot : EquipmentSlotGroup.ARMOR) {
+			ItemStack armorStack = entity.getItemBySlot(slot);
 			if (armorStack.getItem() instanceof PEArmor armorItem) {
 				//We return the max of this piece's base reduction (in relation to the full set),
 				// and the max damage an item can absorb for a given source

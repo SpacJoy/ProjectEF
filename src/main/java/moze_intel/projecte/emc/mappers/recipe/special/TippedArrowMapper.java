@@ -14,27 +14,31 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.world.item.crafting.TippedArrowRecipe;
+import net.minecraft.world.item.crafting.ImbueRecipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
 @RecipeTypeMapper
-public class TippedArrowMapper extends SpecialRecipeMapper<TippedArrowRecipe> {
+public class TippedArrowMapper extends SpecialRecipeMapper<ImbueRecipe> {
 
-	private static final ResourceLocation TIPPED_ARROW = BuiltInRegistries.ITEM.getKey(Items.TIPPED_ARROW);
-	private static final ResourceLocation LINGERING_POTION = BuiltInRegistries.ITEM.getKey(Items.LINGERING_POTION);
+	private static final Identifier TIPPED_ARROW = BuiltInRegistries.ITEM.getKey(Items.TIPPED_ARROW);
+	private static final Identifier LINGERING_POTION = BuiltInRegistries.ITEM.getKey(Items.LINGERING_POTION);
 
 	@Override
-	protected Class<TippedArrowRecipe> getRecipeClass() {
-		return TippedArrowRecipe.class;
+	protected Class<ImbueRecipe> getRecipeClass() {
+		//Note: Vanilla tipped arrows are handled via the data driven crafting_imbue recipe
+		return ImbueRecipe.class;
 	}
 
 	@Override
-	protected boolean handleRecipe(IMappingCollector<NormalizedSimpleStack, Long> mapper, RegistryAccess registryAccess, INSSFakeGroupManager fakeGroupManager) {
+	protected boolean handleMatchingRecipe(IMappingCollector<NormalizedSimpleStack, Long> mapper, RecipeHolder<?> recipeHolder, RegistryAccess registryAccess,
+			INSSFakeGroupManager fakeGroupManager) {
 		NSSItem nssArrow = NSSItem.createItem(Items.ARROW);
-		List<Holder.Reference<Potion>> potions = BuiltInRegistries.POTION.holders().toList();
+		//26.3 removed Registry#holders; listElements now yields the holder references
+		List<Holder.Reference<Potion>> potions = BuiltInRegistries.POTION.listElements().toList();
 		for (Holder<Potion> potionType : potions) {
 			PotionContents potionContents = new PotionContents(potionType);
 			mapper.addConversion(8, createItem(TIPPED_ARROW, potionContents), EMCHelper.intMapOf(
@@ -47,7 +51,7 @@ public class TippedArrowMapper extends SpecialRecipeMapper<TippedArrowRecipe> {
 		return true;
 	}
 
-	private NSSItem createItem(ResourceLocation item, PotionContents contents) {
+	private NSSItem createItem(Identifier item, PotionContents contents) {
 		return NSSItem.createItem(item, DataComponentPatch.builder().set(DataComponents.POTION_CONTENTS, contents).build());
 	}
 

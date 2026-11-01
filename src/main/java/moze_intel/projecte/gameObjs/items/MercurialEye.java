@@ -36,7 +36,6 @@ import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
@@ -68,7 +67,8 @@ public class MercurialEye extends ItemMode<MercurialEyeMode> implements IExtraFu
 
 	@Override
 	public boolean doExtraFunction(@NotNull Player player, @NotNull ItemStack stack, InteractionHand hand) {
-		int selected = player.getInventory().selected;
+		//26.3 made Inventory#selected private
+		int selected = player.getInventory().getSelectedSlot();
 		MenuProvider provider = new SimpleMenuProvider((id, inv, pl) -> new MercurialEyeContainer(id, inv, hand, selected), stack.getHoverName());
 		OpenScreenHelper.openMenuWithData(player, provider, b -> {
 			b.writeEnum(hand);
@@ -82,22 +82,22 @@ public class MercurialEye extends ItemMode<MercurialEyeMode> implements IExtraFu
 	public InteractionResult useOn(UseOnContext ctx) {
 		ItemStack stack = ctx.getItemInHand();
 		Level level = ctx.getLevel();
-		return level.isClientSide ? InteractionResult.SUCCESS : formBlocks(stack, ctx.getPlayer(), ctx.getHand(), level, ctx.getClickedPos(), ctx.getClickedFace());
+		return level.isClientSide() ? InteractionResult.SUCCESS : formBlocks(stack, ctx.getPlayer(), ctx.getHand(), level, ctx.getClickedPos(), ctx.getClickedFace());
 	}
 
 	@NotNull
 	@Override
-	public InteractionResultHolder<ItemStack> use(@NotNull Level level, Player player, @NotNull InteractionHand hand) {
+	public InteractionResult use(@NotNull Level level, Player player, @NotNull InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 		if (getMode(stack) == MercurialEyeMode.CREATION) {
-			if (level.isClientSide) {
-				return InteractionResultHolder.success(stack);
+			if (level.isClientSide()) {
+				return InteractionResult.SUCCESS;
 			}
 			//I'm not sure why there has to be a one point offset to the X coordinate here, but it's pretty consistent in testing.
 			Vec3 targVec = PlayerHelper.getLookTarget(player, 2);
-			return ItemHelper.actionResultFromType(formBlocks(stack, player, hand, level, BlockPos.containing(targVec), null), stack);
+			return formBlocks(stack, player, hand, level, BlockPos.containing(targVec), null);
 		}
-		return InteractionResultHolder.pass(stack);
+		return InteractionResult.PASS;
 	}
 
 	private void playNoEMCSound(Player player) {
@@ -124,9 +124,9 @@ public class MercurialEye extends ItemMode<MercurialEyeMode> implements IExtraFu
 		BlockPlaceContext context;
 		BlockHitResult hitResult;
 		if (facing == null) {
-			hitResult = new BlockHitResult(startingPos.getCenter(), Direction.UP, startingPos, true);
+			hitResult = new BlockHitResult(Vec3.atCenterOf(startingPos), Direction.UP, startingPos, true);
 		} else {
-			hitResult = new BlockHitResult(startingPos.relative(facing).getCenter(), facing, startingPos, false);
+			hitResult = new BlockHitResult(Vec3.atCenterOf(startingPos.relative(facing)), facing, startingPos, false);
 		}
 		if (!target.isEmpty()) {
 			context = new BlockPlaceContext(level, player, hand, target.copy(), hitResult);
@@ -252,7 +252,7 @@ public class MercurialEye extends ItemMode<MercurialEyeMode> implements IExtraFu
 			NonNullList<ItemStack> drops, BlockPlaceContext context) {
 		if (oldState.hasBlockEntity()) {
 			return false;
-		} else if (!newState.getValues().isEmpty()) {
+		} else if (!newState.isSingletonState()) {
 			//If the block has multiple states, make sure we update the state based on where we are placing it
 			BlockPlaceContext adjustedContext = BlockPlaceContext.at(context, placePos, context.getClickedFace());
 			//Ensure that the context returns the actual spot and knows we are replacing the existing state
@@ -293,7 +293,7 @@ public class MercurialEye extends ItemMode<MercurialEyeMode> implements IExtraFu
 			} else if (oldEMC != newEMC) {
 				if (oldEMC == 0) {
 					//Drop the block because it doesn't have an emc value
-					drops.addAll(Block.getDrops(oldState, serverPlayer.serverLevel(), placePos, null, player, eye));
+					drops.addAll(Block.getDrops(oldState, serverPlayer.level(), placePos, null, player, eye));
 				}
 				emcHolder.extractEmc(replacement, newEMC - oldEMC, EmcAction.EXECUTE);
 			}
@@ -317,7 +317,7 @@ public class MercurialEye extends ItemMode<MercurialEyeMode> implements IExtraFu
 					//Only replace replaceable blocks
 					long placeBlockEmc = IEMCProxy.INSTANCE.getValue(placeState.getBlock());
 					//Ensure we are immutable so that changing blocks doesn't act weird
-					if (!newState.getValues().isEmpty()) {
+					if (!newState.isSingletonState()) {
 						//If the block has multiple states, make sure we update the state based on where we are placing it
 						BlockState forPlacement = newState.getBlock().getStateForPlacement(adjustedContext);
 						if (forPlacement == null) {

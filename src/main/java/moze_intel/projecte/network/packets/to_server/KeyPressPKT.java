@@ -25,7 +25,7 @@ import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
@@ -124,7 +124,7 @@ public record KeyPressPKT(PEKeybind key) implements IPEPacket {
 	 */
 	private static boolean mayFallBackFrom(ItemStack stack) {
 		String namespace = BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace();
-		if (!namespace.equals(ResourceLocation.DEFAULT_NAMESPACE) && !namespace.equals(PECore.MODID)) {
+		if (!namespace.equals(Identifier.DEFAULT_NAMESPACE) && !namespace.equals(PECore.MODID)) {
 			//Another mod's item: never override it
 			return false;
 		}

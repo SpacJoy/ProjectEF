@@ -1,18 +1,21 @@
 package moze_intel.projecte.gameObjs.items.armor;
 
 import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
-import net.minecraft.core.Holder;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.ArmorMaterial;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.equipment.ArmorType;
 
-public abstract class PEArmor extends ArmorItem implements IEnchantableEquipment {
+public abstract class PEArmor extends Item implements IEnchantableEquipment {
 
-	protected PEArmor(Holder<ArmorMaterial> material, ArmorItem.Type armorPiece, Properties props) {
-		super(material, armorPiece, props);
+	private final ArmorType armorType;
+
+	protected PEArmor(ArmorType armorType, Properties props) {
+		//26.3 removed ArmorItem entirely: the material now travels through Item.Properties#humanoidArmor, so the caller
+		// must have already applied it to props before handing them over.
+		super(props);
+		this.armorType = armorType;
 	}
 
 	/**
@@ -26,13 +29,17 @@ public abstract class PEArmor extends ArmorItem implements IEnchantableEquipment
 	 * @apiNote A value of zero means that there is no special bonus blocking powers for that damage type, and the piece's base reduction will be get used instead by the
 	 * damage calculation event.
 	 */
-	public abstract float getMaxDamageAbsorb(ArmorItem.Type type, DamageSource source);
+	public abstract float getMaxDamageAbsorb(ArmorType type, DamageSource source);
+
+	public ArmorType getArmorType() {
+		return armorType;
+	}
 
 	public ReductionInfo getReductionInfo(DamageSource source) {
-		float maxDamageAbsorb = getMaxDamageAbsorb(type, source);
+		float maxDamageAbsorb = getMaxDamageAbsorb(armorType, source);
 		float fullSetReduction = getFullSetBaseReduction();
 		if (maxDamageAbsorb > 0 && fullSetReduction > 0) {
-			float pieceEffectiveness = getPieceEffectiveness(type);
+			float pieceEffectiveness = getPieceEffectiveness(armorType);
 			return new ReductionInfo(fullSetReduction * pieceEffectiveness, maxDamageAbsorb * pieceEffectiveness);
 		}
 		return ReductionInfo.ZERO;
@@ -41,17 +48,17 @@ public abstract class PEArmor extends ArmorItem implements IEnchantableEquipment
 	/**
 	 * Gets the overall effectiveness of a given slots piece.
 	 */
-	public float getPieceEffectiveness(ArmorItem.Type type) {
-		if (type == ArmorItem.Type.BOOTS || type == ArmorItem.Type.HELMET) {
+	public float getPieceEffectiveness(ArmorType type) {
+		if (type == ArmorType.BOOTS || type == ArmorType.HELMET) {
 			return 0.2F;
-		} else if (type == ArmorItem.Type.CHESTPLATE || type == ArmorItem.Type.LEGGINGS) {
+		} else if (type == ArmorType.CHESTPLATE || type == ArmorType.LEGGINGS) {
 			return 0.3F;
 		}
 		return 0;
 	}
 
 	protected boolean isEquipped(ItemStack stack, Player player) {
-		return player.getItemBySlot(type.getSlot()) == stack;
+		return player.getItemBySlot(armorType.getSlot()) == stack;
 	}
 
 	public record ReductionInfo(float percentReduced, float maxDamagedAbsorbed) {

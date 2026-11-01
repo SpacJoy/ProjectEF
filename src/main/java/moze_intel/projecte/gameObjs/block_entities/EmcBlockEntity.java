@@ -77,11 +77,12 @@ public abstract class EmcBlockEntity extends BaseEmcBlockEntity {
 			//Only mark the chunk as dirty at most once per tick
 			ChunkAccess chunk = level.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()), ChunkStatus.FULL, false);
 			if (chunk != null) {
-				chunk.setUnsaved(true);
+				//26.3 renamed ChunkAccess#setUnsaved to markUnsaved
+				chunk.markUnsaved();
 			}
 			lastSave = time;
 		}
-		if (recheckComparators && !level.isClientSide) {
+		if (recheckComparators && !level.isClientSide()) {
 			updateComparators = true;
 		}
 	}
@@ -171,7 +172,7 @@ public abstract class EmcBlockEntity extends BaseEmcBlockEntity {
 
 		public void compact() {
 			if (needsCompacting) {
-				if (level != null && !level.isClientSide) {
+				if (level != null && !level.isClientSide()) {
 					empty = ItemHelper.compactInventory(this);
 				}
 				needsCompacting = false;

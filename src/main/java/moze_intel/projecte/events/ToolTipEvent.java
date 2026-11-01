@@ -41,7 +41,8 @@ public class ToolTipEvent {
 		}
 
 		if (ProjectEConfig.client.tagToolTips.get()) {
-			current.getTags().forEach(tag -> tooltip.add(Component.literal("#" + tag.location())));
+			//26.3 removed ItemStack#getTags; the tags hang off the item's holder now
+			current.typeHolder().tags().forEach(tag -> tooltip.add(Component.literal("#" + tag.location())));
 		}
 
 		if (ProjectEConfig.client.emcToolTips.get() && (!ProjectEConfig.client.shiftEmcToolTips.get() || shiftDown)) {

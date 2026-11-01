@@ -16,7 +16,7 @@ import moze_intel.projecte.config.MappingConfig;
 import moze_intel.projecte.config.PEConfigTranslations;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 
 @EMCMapper(priority = Integer.MIN_VALUE)
@@ -66,7 +66,7 @@ public class CustomEMCMapper implements IEMCMapper<NormalizedSimpleStack, Long> 
 			RegistryAccess registryAccess, ResourceManager resourceManager) {
 		if (MappingConfig.enableAvaritiaEMC()) {
 			for (Map.Entry<String, Long> entry : AVARITIA_EMC.entrySet()) {
-				ResourceLocation id = ResourceLocation.parse(entry.getKey());
+				Identifier id = Identifier.parse(entry.getKey());
 				BuiltInRegistries.ITEM.getOptional(id).ifPresent(item -> {
 					PECore.debugLog("Adding built-in Avaritia EMC value for {}: {}", id, entry.getValue());
 					mapper.setValueBefore(NSSItem.createItem(item), entry.getValue());

@@ -13,8 +13,9 @@ import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -23,7 +24,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SimpleWaterloggedBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -39,7 +41,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Pedestal extends Block implements SimpleWaterloggedBlock, PEEntityBlock<DMPedestalBlockEntity>, IMatterBlock {
+public class Pedestal extends Block implements SimpleWaterloggedBlock, PEEntityBlock<DMPedestalBlockEntity>, IMatterBlock, IHasBlockTooltip {
 
 	private static final VoxelShape SHAPE = Shapes.or(
 			Block.box(3, 0, 3, 13, 2, 13),
@@ -91,17 +93,16 @@ public class Pedestal extends Block implements SimpleWaterloggedBlock, PEEntityB
 
 	@Override
 	@Deprecated
-	public void onRemove(BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull BlockState newState, boolean isMoving) {
-		if (state.getBlock() != newState.getBlock()) {
-			dropItem(level, pos);
-			super.onRemove(state, level, pos, newState, isMoving);
-		}
+	protected void affectNeighborsAfterRemoval(BlockState state, @NotNull net.minecraft.server.level.ServerLevel level, @NotNull BlockPos pos, boolean isMoving) {
+		//26.3 dropped the newState parameter from affectNeighborsAfterRemoval
+		dropItem(level, pos);
+		super.affectNeighborsAfterRemoval(state, level, pos, isMoving);
 	}
 
 	@Override
 	@Deprecated
 	public void attack(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player) {
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			dropItem(level, pos);
 		}
 	}
@@ -109,12 +110,12 @@ public class Pedestal extends Block implements SimpleWaterloggedBlock, PEEntityB
 	@NotNull
 	@Override
 	@Deprecated
-	protected ItemInteractionResult useItemOn(@NotNull ItemStack stack, @NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player,
+	protected InteractionResult useItemOn(@NotNull ItemStack stack, @NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Player player,
 			@NotNull InteractionHand hand, @NotNull BlockHitResult rtr) {
-		if (!level.isClientSide) {
+		if (!level.isClientSide()) {
 			DMPedestalBlockEntity pedestal = WorldHelper.getBlockEntity(DMPedestalBlockEntity.class, level, pos, true);
 			if (pedestal == null) {
-				return ItemInteractionResult.FAIL;
+				return InteractionResult.FAIL;
 			}
 			ItemStack item = pedestal.getInventory().getStackInSlot(0);
 			if (stack.isEmpty() && !item.isEmpty()) {
@@ -127,13 +128,14 @@ public class Pedestal extends Block implements SimpleWaterloggedBlock, PEEntityB
 				pedestal.getInventory().setStackInSlot(0, stack.split(1));
 			}
 		}
-		return ItemInteractionResult.sidedSuccess(level.isClientSide);
+		return (level.isClientSide() ? InteractionResult.SUCCESS : InteractionResult.CONSUME);
 	}
 
 	// [VanillaCopy] Adapted from NoteBlock
 	@Override
 	@Deprecated
-	public void neighborChanged(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Block neighbor, @NotNull BlockPos neighborPos, boolean isMoving) {
+	public void neighborChanged(@NotNull BlockState state, Level level, @NotNull BlockPos pos, @NotNull Block neighbor,
+			@NotNull net.minecraft.world.level.redstone.Orientation orientation, boolean isMoving) {
 		boolean hasSignal = level.hasNeighborSignal(pos);
 		DMPedestalBlockEntity ped = WorldHelper.getBlockEntity(DMPedestalBlockEntity.class, level, pos);
 		if (ped != null && ped.previousRedstoneState != hasSignal) {
@@ -158,7 +160,7 @@ public class Pedestal extends Block implements SimpleWaterloggedBlock, PEEntityB
 
 	@Override
 	@Deprecated
-	public int getAnalogOutputSignal(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos) {
+	public int getAnalogOutputSignal(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Direction direction) {
 		DMPedestalBlockEntity pedestal = WorldHelper.getBlockEntity(DMPedestalBlockEntity.class, level, pos);
 		if (pedestal != null) {
 			ItemStack stack = pedestal.getInventory().getStackInSlot(0);
@@ -186,11 +188,10 @@ public class Pedestal extends Block implements SimpleWaterloggedBlock, PEEntityB
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
+	public void addTooltip(@NotNull java.util.function.Consumer<Component> tooltip) {
 		Component interact = Component.keybind("key.use");
-		tooltip.add(PELang.PEDESTAL_TOOLTIP1.translate(interact, Component.keybind("key.attack")));
-		tooltip.add(PELang.PEDESTAL_TOOLTIP2.translate(interact));
+		tooltip.accept(PELang.PEDESTAL_TOOLTIP1.translate(interact, Component.keybind("key.attack")));
+		tooltip.accept(PELang.PEDESTAL_TOOLTIP2.translate(interact));
 	}
 
 	@Nullable
@@ -210,12 +211,12 @@ public class Pedestal extends Block implements SimpleWaterloggedBlock, PEEntityB
 	@NotNull
 	@Override
 	@Deprecated
-	public BlockState updateShape(@NotNull BlockState state, @NotNull Direction facing, @NotNull BlockState facingState, @NotNull LevelAccessor level,
-			@NotNull BlockPos currentPos, @NotNull BlockPos facingPos) {
+	public BlockState updateShape(@NotNull BlockState state, @NotNull LevelReader level, @NotNull ScheduledTickAccess ticks, @NotNull BlockPos pos,
+			@NotNull Direction facing, @NotNull BlockPos facingPos, @NotNull BlockState facingState, @NotNull RandomSource random) {
 		if (state.getValue(BlockStateProperties.WATERLOGGED)) {
-			level.scheduleTick(currentPos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
+			ticks.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
 		}
-		return super.updateShape(state, facing, facingState, level, currentPos, facingPos);
+		return super.updateShape(state, level, ticks, pos, facing, facingPos, facingState, random);
 	}
 
 	@Override

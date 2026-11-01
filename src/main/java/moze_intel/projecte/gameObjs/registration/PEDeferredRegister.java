@@ -10,7 +10,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -51,11 +51,11 @@ public class PEDeferredRegister<T> {
 
 	@NotNull
 	@SuppressWarnings("unchecked")
-	public <I extends T> PEDeferredHolder<T, I> register(@NotNull String name, @NotNull Function<ResourceLocation, ? extends I> func) {
+	public <I extends T> PEDeferredHolder<T, I> register(@NotNull String name, @NotNull Function<Identifier, ? extends I> func) {
 		if (registered) {
 			throw new IllegalStateException("Cannot add entries to " + registryKey + " after registration has been performed");
 		}
-		ResourceLocation valueName = ResourceLocation.fromNamespaceAndPath(namespace, name);
+		Identifier valueName = Identifier.fromNamespaceAndPath(namespace, name);
 		PEDeferredHolder<T, I> holder = (PEDeferredHolder<T, I>) createHolder(registryKey, valueName);
 		entries.add(new Entry<>(holder, func));
 		holders.add(holder);
@@ -64,7 +64,7 @@ public class PEDeferredRegister<T> {
 
 	@NotNull
 	@SuppressWarnings("unchecked")
-	protected <I extends T> PEDeferredHolder<T, I> createHolder(@NotNull ResourceKey<? extends Registry<T>> registryKey, @NotNull ResourceLocation key) {
+	protected <I extends T> PEDeferredHolder<T, I> createHolder(@NotNull ResourceKey<? extends Registry<T>> registryKey, @NotNull Identifier key) {
 		return (PEDeferredHolder<T, I>) holderCreator.apply(ResourceKey.create(registryKey, key));
 	}
 
@@ -85,7 +85,7 @@ public class PEDeferredRegister<T> {
 
 	@SuppressWarnings("unchecked")
 	private Registry<T> findRegistry() {
-		Registry<T> registry = (Registry<T>) BuiltInRegistries.REGISTRY.get(registryKey.location());
+		Registry<T> registry = (Registry<T>) BuiltInRegistries.REGISTRY.getValue(registryKey.identifier());
 		if (registry == null) {
 			throw new IllegalStateException("Cannot find registry " + registryKey);
 		}
@@ -107,10 +107,18 @@ public class PEDeferredRegister<T> {
 		return namespace;
 	}
 
-	private record Entry<T, I extends T>(PEDeferredHolder<T, I> holder, Function<ResourceLocation, ? extends I> factory) {
+	private record Entry<T, I extends T>(PEDeferredHolder<T, I> holder, Function<Identifier, ? extends I> factory) {
 
 		private void register(Registry<T> registry) {
-			I value = factory.apply(holder.getId());
+			//26.3 needs the registry key on the block and item properties, so it is published for the duration of the
+			//factory call and picked up again by the block and item constructors
+			PEPropertyIds.push(holder.getKey());
+			I value;
+			try {
+				value = factory.apply(holder.getId());
+			} finally {
+				PEPropertyIds.pop();
+			}
 			Holder.Reference<T> reference = Registry.registerForHolder(registry, holder.getKey(), value);
 			holder.bind(value, reference);
 		}

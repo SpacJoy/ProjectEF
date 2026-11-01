@@ -16,6 +16,7 @@ import moze_intel.projecte.gameObjs.container.PhilosStoneContainer;
 import moze_intel.projecte.gameObjs.entity.EntityMobRandomizer;
 import moze_intel.projecte.gameObjs.items.PhilosophersStone.PhilosophersStoneMode;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
+import moze_intel.projecte.gameObjs.registries.PEItems;
 import moze_intel.projecte.gameObjs.registries.PESoundEvents;
 import moze_intel.projecte.utils.ClientKeyHelper;
 import moze_intel.projecte.utils.PEKeybind;
@@ -45,6 +46,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.ClipContext;
@@ -60,9 +62,20 @@ public class PhilosophersStone extends ItemMode<PhilosophersStoneMode> implement
 
 	public PhilosophersStone(Properties props) {
 		super(props.component(PEDataComponentTypes.PHILOSOPHERS_STONE_MODE.get(), PhilosophersStoneMode.CUBE), 4);
+	}
+
+	/**
+	 * Makes the stone its own crafting remainder so that crafting does not consume it.
+	 * <p>
+	 * 26.3 builds an {@link ItemStackTemplate} from the item's built in registry holder, and that holder is only bound
+	 * while the item is registered. The constructor runs before that, so the reference cannot be created there and has
+	 * to be filled in once registration has finished.
+	 */
+	public static void initCraftingRemainder() {
 		// 贤者之石是合成催化剂，不应在合成中被消耗
-		// Item#getCraftingRemainingItem 是 final 方法，通过 access widener 设置此字段实现自引用
-		this.craftingRemainingItem = this;
+		// Item#getCraftingRemainder 是 final 方法，通过 access widener 设置此字段实现自引用
+		PhilosophersStone stone = PEItems.PHILOSOPHERS_STONE.get();
+		stone.craftingRemainingItem = new ItemStackTemplate(stone);
 	}
 
 	@NotNull
@@ -90,7 +103,7 @@ public class PhilosophersStone extends ItemMode<PhilosophersStoneMode> implement
 			}
 		}
 
-		if (level.isClientSide) {
+		if (level.isClientSide()) {
 			if (WorldTransmutationManager.INSTANCE.getWorldTransmutation(level.getBlockState(pos), true) == null) {
 				//Pass if there is no world transmutation for the target block
 				return InteractionResult.PASS;
@@ -118,7 +131,7 @@ public class PhilosophersStone extends ItemMode<PhilosophersStoneMode> implement
 			} else {
 				PlayerHelper.checkedReplaceBlock((ServerPlayer) player, level, currentPos, targetState);
 			}
-			if (level.random.nextInt(8) == 0) {
+			if (level.getRandom().nextInt(8) == 0) {
 				((ServerLevel) level).sendParticles(ParticleTypes.LARGE_SMOKE, currentPos.getX(), currentPos.getY() + 1, currentPos.getZ(), 2, 0, 0, 0, 0);
 			}
 		}
@@ -139,16 +152,16 @@ public class PhilosophersStone extends ItemMode<PhilosophersStoneMode> implement
 
 	@Override
 	public boolean doExtraFunction(@NotNull Player player, @NotNull ItemStack stack, InteractionHand hand) {
-		if (!player.level().isClientSide) {
+		if (!player.level().isClientSide()) {
 			player.openMenu(new ContainerProvider(stack));
 		}
 		return true;
 	}
 
 	@Override
-	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flags) {
-		super.appendHoverText(stack, context, tooltip, flags);
-		tooltip.add(PELang.TOOLTIP_PHILOSTONE.translate(ClientKeyHelper.getKeyName(PEKeybind.EXTRA_FUNCTION)));
+	public void appendHoverText(@NotNull ItemStack stack, @NotNull Item.TooltipContext context, @NotNull net.minecraft.world.item.component.TooltipDisplay display, @NotNull java.util.function.Consumer<Component> tooltip, @NotNull TooltipFlag flags) {
+		super.appendHoverText(stack, context, display, tooltip, flags);
+		tooltip.accept(PELang.TOOLTIP_PHILOSTONE.translate(ClientKeyHelper.getKeyName(PEKeybind.EXTRA_FUNCTION)));
 	}
 
 	public static Object2ReferenceMap<BlockPos, BlockState> getChanges(Level level, BlockPos pos, Direction sideHit, Direction horizontalDirection, boolean isSneaking,
