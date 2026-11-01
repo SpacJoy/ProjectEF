@@ -1,6 +1,7 @@
 {
   "parent": "projecte:block/base_chest",
   "textures": {
-    "chest": "projecte:block/alchemical_chest"
+    "chest": "projecte:block/alchemical_chest",
+    "particle": "projecte:block/alchemical_chest"
   }
 }

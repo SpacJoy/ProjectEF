@@ -1,0 +1,1 @@
+{"model":{"fallback":{"model":"projecte:item/soul_stone","type":"minecraft:model"},"property":"minecraft:component","component":"projecte:active","cases":[{"model":{"model":"projecte:item/soul_stone_on","type":"minecraft:model"},"when":true}],"type":"minecraft:select"}}

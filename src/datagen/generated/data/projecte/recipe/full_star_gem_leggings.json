@@ -2,15 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {
-      "item": "projecte:rm_leggings"
-    },
-    {
-      "item": "projecte:black_hole_band"
-    },
-    {
-      "item": "projecte:watch_of_flowing_time"
-    },
+    "projecte:rm_leggings",
+    "projecte:black_hole_band",
+    "projecte:watch_of_flowing_time",
     {
       "type": "neoforge:components",
       "components": {

@@ -1,0 +1,1 @@
+{"model":{"fallback":{"model":"projecte:item/harvest_goddess_band","type":"minecraft:model"},"property":"minecraft:component","component":"projecte:active","cases":[{"model":{"model":"projecte:item/harvest_goddess_band_on","type":"minecraft:model"},"when":true}],"type":"minecraft:select"}}

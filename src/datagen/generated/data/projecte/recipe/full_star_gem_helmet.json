@@ -2,15 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {
-      "item": "projecte:rm_helmet"
-    },
-    {
-      "item": "projecte:evertide_amulet"
-    },
-    {
-      "item": "projecte:soul_stone"
-    },
+    "projecte:rm_helmet",
+    "projecte:evertide_amulet",
+    "projecte:soul_stone",
     {
       "type": "neoforge:components",
       "components": {

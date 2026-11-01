@@ -2,15 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {
-      "item": "projecte:rm_chestplate"
-    },
-    {
-      "item": "projecte:volcanite_amulet"
-    },
-    {
-      "item": "projecte:body_stone"
-    },
+    "projecte:rm_chestplate",
+    "projecte:volcanite_amulet",
+    "projecte:body_stone",
     {
       "type": "neoforge:components",
       "components": {

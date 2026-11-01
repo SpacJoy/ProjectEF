@@ -1,6 +1,7 @@
 {
   "parent": "projecte:block/base_chest",
   "textures": {
-    "chest": "projecte:block/condenser_mk1"
+    "chest": "projecte:block/condenser_mk1",
+    "particle": "projecte:block/condenser_mk1"
   }
 }

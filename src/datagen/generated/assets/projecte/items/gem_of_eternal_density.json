@@ -1,0 +1,1 @@
+{"model":{"fallback":{"model":"projecte:item/gem_of_eternal_density","type":"minecraft:model"},"property":"minecraft:component","component":"projecte:active","cases":[{"model":{"model":"projecte:item/gem_of_eternal_density_on","type":"minecraft:model"},"when":true}],"type":"minecraft:select"}}

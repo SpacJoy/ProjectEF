@@ -1,0 +1,1 @@
+{"model":{"type":"minecraft:select","property":"minecraft:component","component":"projecte:active","cases":[{"when":true,"model":{"type":"minecraft:model","model":"projecte:item/ignition_on"}}],"fallback":{"type":"minecraft:model","model":"projecte:item/ignition_ring"}}}

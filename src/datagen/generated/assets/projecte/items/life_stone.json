@@ -1,0 +1,1 @@
+{"model":{"fallback":{"model":"projecte:item/life_stone","type":"minecraft:model"},"property":"minecraft:component","component":"projecte:active","cases":[{"model":{"model":"projecte:item/life_stone_on","type":"minecraft:model"},"when":true}],"type":"minecraft:select"}}
