@@ -62,3 +62,7 @@ trinkets.mixins.json
 LICENSE_trinkets
 /trinkets/
 /.workbuddy
+
+# Decompiled / extracted jars used for one-off API inspection
+/net/
+/.dsh-tmp-x/
