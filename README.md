@@ -15,11 +15,14 @@
 <a href="https://www.curseforge.com/minecraft/mc-mods/projectef">
 <img src="https://img.shields.io/curseforge/dt/1618732?logo=curseforge&label=CurseForge%20Downloads&color=F16436" alt="CurseForge Downloads">
 </a>
-<a href="https://github.com/wchiway/ProjectEF/releases">
-<img src="https://img.shields.io/github/v/release/wchiway/ProjectEF?logo=github&label=Latest%20Release" alt="Latest Release">
+<a href="https://github.com/SpacJoy/ProjectEF/releases">
+<img src="https://img.shields.io/github/v/release/SpacJoy/ProjectEF?logo=github&label=Latest%20Release" alt="Latest Release">
 </a>
-<a href="https://github.com/wchiway/ProjectEF/blob/mc1.21.1/LICENSE">
-<img src="https://img.shields.io/github/license/wchiway/ProjectEF?label=License" alt="License">
+<a href="https://github.com/SpacJoy/ProjectEF/blob/26.3/LICENSE">
+<img src="https://img.shields.io/github/license/SpacJoy/ProjectEF?label=License" alt="License">
+</a>
+<a href="https://github.com/deepseek-ai/deepseek-harness">
+<img src="https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white" alt="powered by dsh">
 </a>
 
 </p>
