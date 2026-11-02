@@ -25,7 +25,7 @@
 
 ## 快速链接
 
-[CurseForge 下载](https://www.curseforge.com/minecraft/mc-mods/projectef) · [GitHub Releases](https://github.com/wchiway/ProjectEF/releases) · [安装说明](#安装) · [反馈问题](https://github.com/wchiway/ProjectEF/issues) · [开发指南](DEV.md)
+[GitHub Releases](https://github.com/wchiway/ProjectEF/releases) · [安装说明](#安装) · [反馈问题](https://github.com/wchiway/ProjectEF/issues) · [开发指南](DEV.md)
 
 > **本分支说明（Minecraft 26.3）**
 >
@@ -155,7 +155,7 @@
 
 1. 安装 Minecraft 26.3 并装上 Fabric Loader。
 2. 安装对应版本的 Fabric API。
-3. 从 [CurseForge](https://www.curseforge.com/minecraft/mc-mods/projectef) 或 [GitHub Releases](https://github.com/SpacJoy/ProjectEF/releases) 下载 ProjectEF Neo。
+3. 从[GitHub Releases](https://github.com/SpacJoy/ProjectEF/releases) 下载 ProjectEF Neo。
 4. 把 JAR 放进游戏的 `mods` 文件夹。
 
 ### 可选联动
@@ -188,7 +188,7 @@ projecte
 
 ## 反馈问题
 
-请[提交 issue](https://github.com/wchiway/ProjectEF/issues)，并附上：
+请[提交 issue](https://github.com/SpacJoy/ProjectEF/issues)，并附上：
 
 * ProjectEF Neo 版本
 * Minecraft 版本
@@ -208,6 +208,10 @@ projecte
 **Chiway Wang**
 
 Fabric 移植版开发者与维护者。
+
+**Space Joy**
+
+Fabric 26.3移植版开发者与维护者。
 
 ## 致谢
 
