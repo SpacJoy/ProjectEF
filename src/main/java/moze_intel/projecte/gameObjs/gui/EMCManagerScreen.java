@@ -418,13 +418,13 @@ public class EMCManagerScreen extends Screen {
 		drawClipped(graphics, Component.literal(selectedId), editorX, top + 61, editorWidth, 0xFFACB6C8, mouseX, mouseY);
 		drawClipped(graphics, text("current", loaded ? Long.toString(currentValue) : "—"), editorX, top + 75, editorWidth, 0xFFF4DB98, mouseX, mouseY);
 		drawClipped(graphics, text("override", !loaded ? Component.literal("—") : customValue < 0 ? text("default") : Component.literal(Long.toString(customValue))),
-				editorX, top + 89, editorWidth, 0xACB6C8, mouseX, mouseY);
+				editorX, top + 89, editorWidth, 0xFFACB6C8, mouseX, mouseY);
 		drawClipped(graphics, text("value"), editorX, top + 101, editorWidth, 0xFFFFFFFF, mouseX, mouseY);
 		boolean invalidValue = !busy && loaded && !valueText.isEmpty() && parsedValue() <= 0;
 		Component feedback = invalidValue ? Status.INVALID_VALUE.message() : !error && !busy && pending ? text("pending") : status;
 		drawClipped(graphics, feedback, left + 10, top + panelHeight - 40, panelWidth - 20, error || invalidValue ? 0xFFFF8888 : 0xFFE0CC93, mouseX, mouseY);
 		graphics.centeredText(font, text("page", page + 1, Math.max(1, (filtered.size() + pageSize - 1) / pageSize)),
-				left + 10 + listWidth / 2, top + panelHeight - 20, 0xFFFFFF);
+				left + 10 + listWidth / 2, top + panelHeight - 20, 0xFFFFFFFF);
 		if (filtered.isEmpty()) {
 			graphics.centeredText(font, text("no_results"), left + 10 + listWidth / 2, top + 70, 0xFFACB6C8);
 		}
@@ -478,8 +478,9 @@ public class EMCManagerScreen extends Screen {
 				graphics.outline(getX(), getY(), getWidth(), getHeight(), 0xFFC7A75B);
 			}
 			graphics.item(entry.stack(), getX() + 3, getY() + 3);
+			//26.3 drops any text whose color has a zero alpha channel, so the 0xRRGGBB literals need an explicit 0xFF
 			graphics.text(font, font.plainSubstrByWidth(displayName(entry.stack(), entry.id()).getString(), getWidth() - 26), getX() + 24, getY() + 3,
-					active ? 0xFFFFFF : 0x888888, false);
+					active ? 0xFFFFFFFF : 0xFF888888, false);
 			graphics.text(font, font.plainSubstrByWidth(entry.id(), getWidth() - 26), getX() + 24, getY() + 12, 0xFF96A4BB, false);
 		}
 	}

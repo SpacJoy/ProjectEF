@@ -42,6 +42,8 @@ def main():
     assert background.count("Screen.extractBackground:") == 1, "Draw the vanilla background once"
     assert f"{EXTRACTOR}.fill:" in background, "The panel background must be filled in extractBackground()"
     assert background.index("Screen.extractBackground:") < background.index(f"{EXTRACTOR}.fill:"), "Panel must follow the vanilla background"
+    colors = re.findall(r"0x[0-9A-Fa-f]{6}\b", (ROOT / "src/main/java/moze_intel/projecte/gameObjs/gui/EMCManagerScreen.java").read_text(encoding="utf-8"))
+    assert not colors, f"Alpha-less colors are silently dropped by 26.3 text rendering: {sorted(set(colors))}"
     print("PASS: compiled rendering order is base extract -> panel fill, then widgets and labels after the base extract")
 
 
