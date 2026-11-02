@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">ProjectEF Neo</h1>
 <p align="center">
-  <b>Equivalent Exchange: Reborn for Fabric</b><br>
+  <b>等价交换：Fabric 重制版</b><br>
   中文名：等价交换Neo<br>
   本分支为 <b>Minecraft 26.3</b> 移植版
 </p>
@@ -23,9 +23,9 @@
 
 </p>
 
-## Quick Links
+## 快速链接
 
-[Download on CurseForge](https://www.curseforge.com/minecraft/mc-mods/projectef) · [GitHub Releases](https://github.com/wchiway/ProjectEF/releases) · [Installation](#installation) · [Report an Issue](https://github.com/wchiway/ProjectEF/issues) · [Developer Guide](DEV.md)
+[CurseForge 下载](https://www.curseforge.com/minecraft/mc-mods/projectef) · [GitHub Releases](https://github.com/wchiway/ProjectEF/releases) · [安装说明](#安装) · [反馈问题](https://github.com/wchiway/ProjectEF/issues) · [开发指南](DEV.md)
 
 > **本分支说明（Minecraft 26.3）**
 >
@@ -86,140 +86,140 @@
 - **EMI 集成**：EMI 没有 26.3 版本，源码保留在树里但排除在编译外。JEI 和 REI 正常。
 - **其他可选兼容**：Avaritia、AMEcs 等依赖没有 26.3 版本，运行时会静默跳过。
 
-## Overview
+## 概述
 
-**ProjectEF Neo** is a modern Fabric port of the classic **ProjectE** mod — the complete **Equivalent Exchange** experience on Minecraft 1.21.1.
+**ProjectEF Neo** 是经典模组 **ProjectE** 的现代化 Fabric 移植版，把完整的 **等价交换（Equivalent Exchange）** 体验带到了 Minecraft 上。
 
-The **"F"** stands for **Fabric**. ProjectEF Neo keeps the classic **EMC (Energy-Matter Covalence)** gameplay intact:
+名字里的 **「F」** 代表 **Fabric**。ProjectEF Neo 完整保留了经典的 **EMC（能量-物质等价）** 玩法：
 
-* Convert items into EMC and permanently learn their value.
-* Recreate learned items anytime through the Transmutation Table or the portable Transmutation Tablet.
-* Automate EMC production with Collectors, Relays, and Condensers.
-* Progress from the Philosopher's Stone to Dark Matter / Red Matter tools and GEM armor.
+* 把物品转换成 EMC，并永久记录该物品的价值。
+* 随时通过转换桌或便携式转换桌，把已记录的物品再造出来。
+* 用能量收集器、反物质继电器、能量凝聚器自动生产 EMC。
+* 从哲学之石一路进阶到暗物质 / 红物质工具与宝石护甲。
 
-Existing ProjectE configuration files, resource paths, datapacks, and world data remain compatible wherever possible.
+原有的 ProjectE 配置文件、资源路径、数据包和世界数据在可能的情况下都保持兼容。
 
-## Features
+## 功能
 
-### EMC & Transmutation
+### EMC 与转换
 
-* Item ↔ EMC conversion with permanent item knowledge.
-* Transmutation Table and portable Transmutation Tablet.
-* Configurable custom EMC values (`custom_emc.json`, in-game EMC Manager, or commands).
-* Press **F8** (rebindable in Controls) or use **EMC Manager** in the pause menu. Search by item name/ID or select your held item's base type, then save, remove, or reset its EMC. Click **Apply** to recalculate and synchronize all saved changes without `/reload`.
-* Editing requires the corresponding ProjectE `set_emc`, `remove_emc`, or `reset_emc` command permission (OP level 2 by default); applying requires all three. Remove saves a zero override; Reset removes the base-item override. Tags and component-specific variants are not edited by this screen.
+* 物品与 EMC 双向转换，物品价值永久记录。
+* 转换桌与便携式转换桌。
+* 可自定义 EMC 值（`custom_emc.json`、游戏内 EMC 管理器，或命令）。
+* 按 **F8**（可在「控制」里改键）或使用暂停菜单里的 **EMC 管理器**。可按物品名称 / ID 搜索，或直接选中手持物品的基础类型，然后保存、移除或重置它的 EMC。点 **应用** 即可重新计算并同步所有已保存的改动，不需要 `/reload`。
+* 编辑需要对应的 ProjectE 命令权限（`set_emc`、`remove_emc`、`reset_emc`，默认 OP 等级 2）；应用需要这三项全部具备。移除会保存一个零值覆盖；重置会删掉基础物品的覆盖值。该界面不编辑标签和组件变体。
 
-### EMC Generation & Automation
+### EMC 生产与自动化
 
-* Energy Collectors (MK1–MK3)
-* Anti-Matter Relays (MK1–MK3)
-* Energy Condensers (MK1/MK2)
-* Dark Matter Pedestal
+* 能量收集器（MK1–MK3）
+* 反物质继电器（MK1–MK3）
+* 能量凝聚器（MK1/MK2）
+* 暗物质台座
 
-### Equipment & Utility Items
+### 装备与实用物品
 
-* Philosopher's Stone — block transmutation and world conversion.
-* Dark Matter and Red Matter tools with configurable area mining.
-* Dark Matter Furnace and Red Matter Furnace.
-* Alchemical Bags and Eternal Density gems.
-* Swiftwolf's Rending Gale.
-* Full GEM Armor abilities: night vision, step assist, flight, and combat effects.
+* 哲学之石 —— 方块转换与世界转化。
+* 暗物质与红物质工具，支持可配置的范围挖掘。
+* 暗物质熔炉与红物质熔炉。
+* 炼金袋与永恒密度宝石。
+* 疾风之戒（Swiftwolf's Rending Gale）。
+* 完整的宝石护甲能力：夜视、自动上台阶、飞行与战斗效果。
 
-### Trinkets Integration
+### Trinkets 集成
 
-Accessory slots are provided through [Trinkets](https://modrinth.com/mod/trinkets): equip rings, amulets, charms, and Klein Stars in the `hand/ring` and `chest/necklace` slots. ProjectEF Neo works without Trinkets — accessories simply behave as regular inventory items.
+饰品槽由 [Trinkets](https://modrinth.com/mod/trinkets) 提供：戒指、护身符、符咒和克莱因之星可以装备到 `hand/ring` 与 `chest/necklace` 槽位。没有装 Trinkets 也能正常运行 —— 饰品会当作普通背包物品使用。
 
-### Compatibility & Localization
+### 兼容与本地化
 
-* Built-in EMC values for classic Avaritia items are **disabled by default**. To opt in, set `enableAvaritiaEMC = true` at the top level of `config/ProjectE/mapping.toml`, then restart the server or reload the world. If `usePregenerated` is enabled, disable it first so EMC values are recalculated. This switch does not block custom EMC values or values derived from recipes.
-* AvaritiaNeo Fabric: automatically enables Dark Matter and Red Matter Singularities, with compressor recipes consuming 200 corresponding ProjectE matter blocks. Item Alchemy is not required.
-* Full Simplified Chinese and English localization.
-* Compatible with original ProjectE configuration format and mod ID (`projecte`).
+* 经典 Avaritia 物品的内置 EMC 值**默认关闭**。要启用，在 `config/ProjectE/mapping.toml` 顶层设置 `enableAvaritiaEMC = true`，然后重启服务器或重新加载世界。如果开了 `usePregenerated`，先关掉它，EMC 值才会重新计算。这个开关不影响自定义 EMC 值和由配方推导出的值。
+* AvaritiaNeo Fabric：自动启用暗物质与红物质奇点，压缩配方消耗 200 个对应的 ProjectE 物质块。不需要物品炼金。
+* 完整的中文与英文本地化。
+* 兼容原版 ProjectE 的配置格式与模组 ID（`projecte`）。
 
-## Installation
+## 安装
 
-### Requirements
+### 环境要求
 
 当前分支（26.3）：
 
 * Minecraft 26.3
-* Fabric Loader 0.19.5 or newer
+* Fabric Loader 0.19.5 或更高
 * Fabric API 0.165.0+26.3
 * Java 25
 
 （1.21.1 主线分支的要求是 Minecraft 1.21.1、Fabric Loader 0.16.9+、Java 21。）
 
-> Forge Config API Port and fabric-permissions-api are bundled inside the ProjectEF Neo JAR (jar-in-jar). **No extra downloads needed.**
+> Forge Config API Port 和 fabric-permissions-api 已经打包在 ProjectEF Neo 的 JAR 里（jar-in-jar），**不需要额外下载**。
 
-### Steps
+### 安装步骤
 
-1. Install Minecraft 26.3 with Fabric Loader.
-2. Install a compatible Fabric API version.
-3. Download ProjectEF Neo from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/projectef) or [GitHub Releases](https://github.com/SpacJoy/ProjectEF/releases).
-4. Place the JAR file into your Minecraft `mods` folder.
+1. 安装 Minecraft 26.3 并装上 Fabric Loader。
+2. 安装对应版本的 Fabric API。
+3. 从 [CurseForge](https://www.curseforge.com/minecraft/mc-mods/projectef) 或 [GitHub Releases](https://github.com/SpacJoy/ProjectEF/releases) 下载 ProjectEF Neo。
+4. 把 JAR 放进游戏的 `mods` 文件夹。
 
-### Optional Integrations
+### 可选联动
 
-These mods only enhance the experience and are never required:
+这些模组只是锦上添花，都不是必需的：
 
-* JEI / EMI / REI — recipe viewers
-* Jade / WTHIT — block information overlays. With Jade installed, ProjectEF Neo registers its own EMC provider through Jade's Fabric plugin entrypoint; no Jade patch is required. Blocks with an EMC value display it when looked at. Keep `misc.lookingAtDisplay` enabled in ProjectE's `server.toml` and **EMC Provider** (`projecte:emc_provider`) enabled in Jade's plugin settings.
-* Trinkets — accessory slots
+* JEI / EMI / REI —— 配方查看器
+* Jade / WTHIT —— 方块信息浮层。装了 Jade 时，ProjectEF Neo 会通过 Jade 的 Fabric 插件入口注册自己的 EMC 数据源，不需要给 Jade 打补丁。看向有 EMC 值的方块就会显示。请保持 ProjectE `server.toml` 里的 `misc.lookingAtDisplay` 开启，并在 Jade 的插件设置里启用 **EMC Provider**（`projecte:emc_provider`）。
+* Trinkets —— 饰品槽
 
-## Compatibility Notes
+## 兼容性说明
 
-ProjectEF Neo keeps the original ProjectE mod identifier:
+ProjectEF Neo 保留原版 ProjectE 的模组标识：
 
 ```
 projecte
 ```
 
-This allows compatibility with:
+因此可以兼容：
 
-* Existing configuration files
-* Existing resource paths
-* Existing world data
+* 已有的配置文件
+* 已有的资源路径
+* 已有的世界数据
 
-The following integrations from the NeoForge version are not included:
+以下联动来自 NeoForge 版本，本版本**没有**包含：
 
 * CraftTweaker
 * The One Probe
-* Curios (replaced by Trinkets on Fabric)
+* Curios（Fabric 上由 Trinkets 取代）
 
-## Reporting Issues
+## 反馈问题
 
-Please [open an issue](https://github.com/wchiway/ProjectEF/issues) and include:
+请[提交 issue](https://github.com/wchiway/ProjectEF/issues)，并附上：
 
-* ProjectEF Neo version
-* Minecraft version
-* Fabric Loader version
-* Fabric API version
-* Steps to reproduce
-* Relevant game logs
+* ProjectEF Neo 版本
+* Minecraft 版本
+* Fabric Loader 版本
+* Fabric API 版本
+* 复现步骤
+* 相关游戏日志
 
-Please attach logs as files or external paste links instead of posting complete logs directly in the issue.
+日志请以文件或外部粘贴链接的形式附上，不要直接把完整日志贴在 issue 里。
 
-## Development
+## 开发
 
-For source builds, development runs, and source-set status, see the [Developer Guide](DEV.md). Architecture notes, examples, and historical material are listed in the [documentation index](docs/README.md).
+源码构建、开发环境运行、源码集状态等内容见[开发指南](DEV.md)。架构说明、示例与历史资料见[文档索引](docs/README.md)。
 
-## Maintainer
+## 维护者
 
 **Chiway Wang**
 
-Fabric port developer and maintainer.
+Fabric 移植版开发者与维护者。
 
-## Credits
+## 致谢
 
-ProjectEF Neo is based on the original **ProjectE** project.
+ProjectEF Neo 基于原版 **ProjectE** 项目。
 
-Special thanks to:
+特别感谢：
 
-* ProjectE developers and contributors
-* EE2 original creators
-* Minecraft modding community
+* ProjectE 的开发者与贡献者
+* EE2 的原始创作者
+* Minecraft 模组社区
 
-Original contributors include:
+原始贡献者包括：
 
 * SinKillerJ
 * pupnewfster
@@ -229,11 +229,11 @@ Original contributors include:
 * MozeIntel
 * Kolatra
 
-Additional credits:
+其他致谢：
 
-* x3n0ph0b3 — EE2 creator and original asset permissions
-* MidnightLightning — EE2 GUI textures
+* x3n0ph0b3 —— EE2 创作者与原始素材授权
+* MidnightLightning —— EE2 的 GUI 贴图
 
-## License
+## 许可证
 
-ProjectEF Neo is released under the MIT License.
+ProjectEF Neo 以 MIT 许可证发布。
