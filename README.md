@@ -12,9 +12,6 @@
 <!-- <a href="https://modrinth.com/mod/projectef">
 <img src="https://img.shields.io/modrinth/dt/projectef?logo=modrinth&label=Modrinth%20Downloads&color=00AF5C" alt="Modrinth Downloads">
 </a> -->
-<a href="https://www.curseforge.com/minecraft/mc-mods/projectef">
-<img src="https://img.shields.io/curseforge/dt/1618732?logo=curseforge&label=CurseForge%20Downloads&color=F16436" alt="CurseForge Downloads">
-</a>
 <a href="https://github.com/SpacJoy/ProjectEF/releases">
 <img src="https://img.shields.io/github/v/release/SpacJoy/ProjectEF?logo=github&label=Latest%20Release" alt="Latest Release">
 </a>
