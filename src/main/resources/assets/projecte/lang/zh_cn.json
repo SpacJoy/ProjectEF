@@ -8,7 +8,7 @@
   "gui.projecte.emc_manager.remove": "删除 EMC",
   "gui.projecte.emc_manager.reset": "恢复默认",
   "gui.projecte.emc_manager.apply": "应用重算",
-  "gui.projecte.emc_manager.base_only": "编辑基础物品；不包含标签、附魔或其他特殊组件变体。",
+  "gui.projecte.emc_manager.base_only": "EMC 仍按基础物品记录；名称与图标取自创造模式物品栏的展示变体。",
   "gui.projecte.emc_manager.current": "当前 EMC：%s",
   "gui.projecte.emc_manager.override": "自定义值：%s",
   "gui.projecte.emc_manager.default": "默认（无覆盖）",

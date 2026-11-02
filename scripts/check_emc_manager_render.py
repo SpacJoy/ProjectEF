@@ -1,6 +1,8 @@
 """Guard the compiled EMC screen against drawing a second background over its labels.
 
-Run gradlew build first. This checks render-call ordering, not visual game output.
+Run gradlew build first. This checks extract-call ordering, not visual game output.
+Minecraft 26.3 replaced Screen#render with extractRenderState/extractBackground, so the
+panel fills must stay in extractBackground and the labels must follow the base extract pass.
 """
 
 from pathlib import Path
@@ -9,6 +11,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 SCREEN = "moze_intel.projecte.gameObjs.gui.EMCManagerScreen"
+EXTRACTOR = "GuiGraphicsExtractor"
 
 
 def method_body(bytecode, name):
@@ -30,15 +33,16 @@ def main():
         encoding="ascii",
         errors="replace",
     )
-    render = method_body(result.stdout, "render")
-    background = method_body(result.stdout, "renderBackground")
-    assert render.count("Screen.render:") == 1, "Render widgets/background exactly once"
-    assert "renderBackground:" not in render, "Do not redraw the background inside render()"
-    assert "GuiGraphics.fill:" not in render, "Panel fills belong in renderBackground()"
-    assert render.index("Screen.render:") < render.index("GuiGraphics.drawCenteredString:"), "Labels must follow the base render pass"
-    assert background.count("Screen.renderBackground:") == 1, "Draw the vanilla background once"
-    assert background.index("Screen.renderBackground:") < background.index("GuiGraphics.fill:"), "Panel must follow the vanilla background"
-    print("PASS: compiled rendering order is background -> widgets -> labels, with no second background pass")
+    state = method_body(result.stdout, "extractRenderState")
+    background = method_body(result.stdout, "extractBackground")
+    assert state.count("Screen.extractRenderState:") == 1, "Extract the base widgets exactly once"
+    assert "Screen.extractBackground:" not in state, "Do not re-extract the background inside extractRenderState()"
+    assert f"{EXTRACTOR}.fill:" not in state, "Panel fills belong in extractBackground()"
+    assert state.index("Screen.extractRenderState:") < state.index(f"{EXTRACTOR}."), "Labels must follow the base extract pass"
+    assert background.count("Screen.extractBackground:") == 1, "Draw the vanilla background once"
+    assert f"{EXTRACTOR}.fill:" in background, "The panel background must be filled in extractBackground()"
+    assert background.index("Screen.extractBackground:") < background.index(f"{EXTRACTOR}.fill:"), "Panel must follow the vanilla background"
+    print("PASS: compiled rendering order is base extract -> panel fill, then widgets and labels after the base extract")
 
 
 if __name__ == "__main__":

@@ -2,8 +2,10 @@ package moze_intel.projecte.gameObjs.gui;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import moze_intel.projecte.client.EMCManagerClient;
 import moze_intel.projecte.network.PENetwork;
 import moze_intel.projecte.network.packets.to_client.EMCManagerResponsePKT;
@@ -17,10 +19,19 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.flag.FeatureFlagSet;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.NotNull;
@@ -48,17 +59,71 @@ public class EMCManagerScreen extends Screen {
 		super(text("title"));
 		this.parent = parent;
 		Minecraft client = Minecraft.getInstance();
+		FeatureFlagSet features = client.getConnection() == null ? FeatureFlags.DEFAULT_FLAGS : client.getConnection().enabledFeatures();
 		if (client.player != null && !client.player.getMainHandItem().isEmpty()) {
-			selected = new ItemStack(client.player.getMainHandItem().getItem());
+			//Keep the components of the held stack: mods such as TaCZ derive the name and the icon from their data components
+			selected = client.player.getMainHandItem().copyWithCount(1);
 		}
-		BuiltInRegistries.ITEM.forEach(item -> {
-			if (item != Items.AIR && client.level != null && item.isEnabled(client.level.enabledFeatures())) {
-				ItemStack stack = new ItemStack(item);
+		//Component variants are only listed by the creative search tab, a plain ItemStack would lose them
+		Map<Item, ItemStack> variants = displayStacks(client, features);
+		for (Item item : BuiltInRegistries.ITEM) {
+			if (item != Items.AIR && item.isEnabled(features)) {
+				ItemStack stack = variants.getOrDefault(item, new ItemStack(item));
 				String id = BuiltInRegistries.ITEM.getKey(item).toString();
-				items.add(new ItemEntry(stack, id, stack.getHoverName().getString().toLowerCase(Locale.ROOT)));
+				items.add(new ItemEntry(stack, id, displayName(stack, id).getString().toLowerCase(Locale.ROOT)));
 			}
-		});
+		}
 		items.sort(Comparator.comparing(ItemEntry::id));
+	}
+
+	/**
+	 * Collects the stacks the creative search tab shows for every item, so items that only exist as a data component variant keep their name and icon.
+	 */
+	private static Map<Item, ItemStack> displayStacks(Minecraft client, FeatureFlagSet features) {
+		Map<Item, ItemStack> variants = new HashMap<>();
+		if (client.level == null) {
+			return variants;
+		}
+		RegistryAccess registryAccess = client.level.registryAccess();
+		CreativeModeTab tab = registryAccess.lookupOrThrow(Registries.CREATIVE_MODE_TAB).getValue(CreativeModeTabs.SEARCH);
+		if (tab == null) {
+			return variants;
+		}
+		if (tab.getSearchTabDisplayItems().isEmpty()) {
+			//The search tab only aggregates the other tabs, so every tab has to be built the way the creative screen does
+			boolean hasPermissions = client.options.operatorItemsTab().get() || client.player != null && client.player.canUseGameMasterBlocks();
+			CreativeModeTabs.tryRebuildTabContents(features, hasPermissions, registryAccess);
+			if (tab.getSearchTabDisplayItems().isEmpty()) {
+				try {
+					tab.buildContents(new CreativeModeTab.ItemDisplayParameters(features, hasPermissions, registryAccess));
+				} catch (Exception ignored) {
+					//Fall back to plain items when the tabs can not be built yet
+				}
+			}
+		}
+		for (ItemStack stack : tab.getSearchTabDisplayItems()) {
+			if (stack.isEmpty()) {
+				continue;
+			}
+			Item item = stack.getItem();
+			ItemStack known = variants.get(item);
+			boolean hasComponents = !stack.getComponentsPatch().isEmpty();
+			if (known == null || hasComponents && known.getComponentsPatch().isEmpty()) {
+				variants.put(item, stack.copyWithCount(1));
+			}
+		}
+		return variants;
+	}
+
+	/**
+	 * Shows the translated name when the language has it, otherwise the item id instead of a raw translation key.
+	 */
+	private static Component displayName(ItemStack stack, String id) {
+		Component name = stack.getHoverName();
+		if (name.getContents() instanceof TranslatableContents contents && !Language.getInstance().has(contents.getKey())) {
+			return Component.literal(id);
+		}
+		return name;
 	}
 
 	private static Component text(String key, Object... args) {
@@ -145,7 +210,7 @@ public class EMCManagerScreen extends Screen {
 			row.entry = itemIndex < filtered.size() ? filtered.get(itemIndex) : null;
 			row.visible = row.entry != null;
 			if (row.entry != null) {
-				row.setMessage(row.entry.stack().getHoverName().copy().append(" (" + row.entry.id() + ")"));
+				row.setMessage(displayName(row.entry.stack(), row.entry.id()).copy().append(" (" + row.entry.id() + ")"));
 				row.setTooltip(Tooltip.create(Component.literal(row.entry.id())));
 			}
 		}
@@ -159,7 +224,8 @@ public class EMCManagerScreen extends Screen {
 
 	private void selectHeld() {
 		if (minecraft.player != null && !minecraft.player.getMainHandItem().isEmpty()) {
-			select(new ItemStack(minecraft.player.getMainHandItem().getItem()));
+			//Select the held stack with its components so items relying on them keep their name and icon
+			select(minecraft.player.getMainHandItem().copyWithCount(1));
 		}
 	}
 
@@ -347,8 +413,9 @@ public class EMCManagerScreen extends Screen {
 		graphics.text(font, title, left + 10, top + 8, 0xFFF4DB98, false);
 		drawClipped(graphics, text("base_only"), left + 10, top + 24, panelWidth - 20, 0xFFACB6C8, mouseX, mouseY);
 		graphics.item(selected, editorX, top + 38);
-		drawClipped(graphics, selected.getHoverName(), editorX + 22, top + 42, editorWidth - 22, 0xFFFFFFFF, mouseX, mouseY);
-		drawClipped(graphics, Component.literal(BuiltInRegistries.ITEM.getKey(selected.getItem()).toString()), editorX, top + 61, editorWidth, 0xFFACB6C8, mouseX, mouseY);
+		String selectedId = BuiltInRegistries.ITEM.getKey(selected.getItem()).toString();
+		drawClipped(graphics, displayName(selected, selectedId), editorX + 22, top + 42, editorWidth - 22, 0xFFFFFFFF, mouseX, mouseY);
+		drawClipped(graphics, Component.literal(selectedId), editorX, top + 61, editorWidth, 0xFFACB6C8, mouseX, mouseY);
 		drawClipped(graphics, text("current", loaded ? Long.toString(currentValue) : "—"), editorX, top + 75, editorWidth, 0xFFF4DB98, mouseX, mouseY);
 		drawClipped(graphics, text("override", !loaded ? Component.literal("—") : customValue < 0 ? text("default") : Component.literal(Long.toString(customValue))),
 				editorX, top + 89, editorWidth, 0xACB6C8, mouseX, mouseY);
@@ -411,7 +478,7 @@ public class EMCManagerScreen extends Screen {
 				graphics.outline(getX(), getY(), getWidth(), getHeight(), 0xFFC7A75B);
 			}
 			graphics.item(entry.stack(), getX() + 3, getY() + 3);
-			graphics.text(font, font.plainSubstrByWidth(entry.stack().getHoverName().getString(), getWidth() - 26), getX() + 24, getY() + 3,
+			graphics.text(font, font.plainSubstrByWidth(displayName(entry.stack(), entry.id()).getString(), getWidth() - 26), getX() + 24, getY() + 3,
 					active ? 0xFFFFFF : 0x888888, false);
 			graphics.text(font, font.plainSubstrByWidth(entry.id(), getWidth() - 26), getX() + 24, getY() + 12, 0xFF96A4BB, false);
 		}

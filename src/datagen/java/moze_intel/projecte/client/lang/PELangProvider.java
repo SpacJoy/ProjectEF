@@ -180,7 +180,7 @@ public class PELangProvider extends BaseLanguageProvider {
 		add("gui.projecte.emc_manager.remove", "Remove");
 		add("gui.projecte.emc_manager.reset", "Reset");
 		add("gui.projecte.emc_manager.apply", "Apply");
-		add("gui.projecte.emc_manager.base_only", "Edits base items, not tags, enchantments or other component variants.");
+		add("gui.projecte.emc_manager.base_only", "EMC is still keyed by base item; names and icons come from the creative tab's display variants.");
 		add("gui.projecte.emc_manager.current", "Current EMC: %s");
 		add("gui.projecte.emc_manager.override", "Custom value: %s");
 		add("gui.projecte.emc_manager.default", "Default (no override)");
