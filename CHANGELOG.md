@@ -63,7 +63,7 @@ All notable changes to ProjectEF Neo are documented here.
 
 ### Changed
 
-- Renamed to **ProjectEF Neo** (Chinese: 等价交换 Neo).
+- Renamed to **ProjectEF Neo** (Chinese: 等价交换Neo).
 
 ## [1.2.1] - 2026-07-31
 

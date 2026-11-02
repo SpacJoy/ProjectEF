@@ -4,7 +4,7 @@
 <h1 align="center">ProjectEF Neo</h1>
 <p align="center">
   <b>Equivalent Exchange: Reborn for Fabric</b><br>
-  中文名：等价交换 Neo<br>
+  中文名：等价交换Neo<br>
   Minecraft 1.21.1 · Fabric<br>
   本分支为 <b>Minecraft 26.3</b> 移植版
 </p>
