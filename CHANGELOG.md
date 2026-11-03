@@ -2,6 +2,15 @@
 
 All notable changes to ProjectEF Neo are documented here.
 
+## [1.3.5] - 2026-11-03
+
+### Fixed
+
+- Text in the EMC Manager was invisible on 26.3. Minecraft 26.3 drops any text whose colour has a zero alpha channel, and several labels were written as bare `0xRRGGBB` literals that left alpha at zero, so the override value, the page counter and the item list rows rendered as nothing. Every colour in the screen now carries an explicit `0xFF` alpha.
+- The EMC Manager lost the data components of the item in the main hand. The screen rebuilt the entry from `new ItemStack(stack.getItem())`, which drops every component, so mods that derive the display name and the icon from components — TaCZ being the obvious one — showed a raw registry id with a missing icon. The held stack is now copied with its components, and the item list takes its display stacks from the creative search tab so component-only variants keep their name and icon too. Items whose translation key the loaded language does not have now fall back to the registry id instead of showing the raw key.
+- The `highAlchemistUUIDs` list in `config/projecte/common.toml` was reported as invalid and rewritten on every single load. It was declared with `define(...)`, which builds a `ValueSpec` whose validator runs against the whole value, so the `o instanceof String` element predicate was tested against the `List` itself and could never pass; `isCorrect()` therefore always reported a correction, and each launch rewrote the file and rotated one `common-N.toml.bak` backup. It is now declared with `defineListAllowEmpty(...)`, whose validator checks each element and accepts an empty list, and the field type is `ConfigValue<List<? extends String>>`.
+- Shutting the game down produced a crash report from `ClientShutdownWatchdog` (`java.lang.Error: Watchdog (Client shutdown from post-main)`). Since 26.2 vanilla no longer calls `System.exit(0)` on quit, so any non-daemon thread pool that is still alive keeps the JVM from terminating, and the watchdog force-kills it fifteen seconds later. `BasePEConfig`'s static config-save executor was such a pool; it now uses a named daemon thread (`ProjectE-Config-Saver`), so a queued write can no longer hold the process open.
+
 ## [1.3.4] - 2026-10-09
 
 ### Added
