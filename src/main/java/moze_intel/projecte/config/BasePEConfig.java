@@ -10,7 +10,14 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 public abstract class BasePEConfig implements IPEConfig {
 
-	private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+	private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor(runnable -> {
+		// Daemon thread: a pending config write must never keep the JVM alive after shutdown.
+		// On MC 26.2+ vanilla no longer calls System.exit(0), so a non-daemon pool left running by this
+		// class makes ClientShutdownWatchdog time out ("Watchdog (Client shutdown from post-main)").
+		Thread thread = new Thread(runnable, "ProjectE-Config-Saver");
+		thread.setDaemon(true);
+		return thread;
+	});
 
 	private final List<CachedValue<?>> cachedConfigValues = new ArrayList<>();
 
