@@ -16,14 +16,14 @@ public class CommonConfig extends BasePEConfig {
 	public final CachedBooleanValue debugLogging;
 	public final CachedBooleanValue craftableTome;
 	public final CachedBooleanValue fullKleinStars;
-	public final ConfigValue<List<String>> highAlchemistUUIDs;
+	public final ConfigValue<List<? extends String>> highAlchemistUUIDs;
 
 	CommonConfig() {
 		ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 		debugLogging = CachedBooleanValue.wrap(this, PEConfigTranslations.COMMON_DEBUG_LOGGING.applyToBuilder(builder).define("debugLogging", false));
 
 		highAlchemistUUIDs = PEConfigTranslations.COMMON_HIGH_ALCHEMISTS.applyToBuilder(builder)
-				.define("highAlchemistUUIDs", List.<String>of(), o -> o instanceof String);
+				.defineListAllowEmpty("highAlchemistUUIDs", List.<String>of(), o -> o instanceof String);
 
 		PEConfigTranslations.COMMON_CRAFTING.applyToBuilder(builder).push("crafting");
 		craftableTome = CachedBooleanValue.wrap(this, PEConfigTranslations.COMMON_CRAFTING_TOME.applyToBuilder(builder).define("craftableTome", false));
