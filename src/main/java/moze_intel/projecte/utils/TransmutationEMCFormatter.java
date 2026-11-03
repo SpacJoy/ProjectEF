@@ -1,9 +1,7 @@
 package moze_intel.projecte.utils;
 
-import moze_intel.projecte.PECore;
 import moze_intel.projecte.utils.text.PELang;
 import moze_intel.projecte.utils.text.TextComponentUtil;
-import net.minecraft.util.Util;
 import net.minecraft.network.chat.Component;
 
 public class TransmutationEMCFormatter {
@@ -35,6 +33,6 @@ public class TransmutationEMCFormatter {
 		} else {//if (extraDigits == 2)
 			value = Double.parseDouble(emcAsString.substring(0, 2) + "." + emcAsString.substring(2, 4));
 		}
-		return TextComponentUtil.smartTranslate(Util.makeDescriptionId("emc", PECore.rl("postfix." + postfixIndex)), EMCHelper.formatEmc(value));
+		return EmcUnits.format(postfixIndex, EMCHelper.formatEmc(value));
 	}
 }

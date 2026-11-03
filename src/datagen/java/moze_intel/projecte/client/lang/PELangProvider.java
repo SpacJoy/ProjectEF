@@ -10,6 +10,7 @@ import moze_intel.projecte.gameObjs.registries.PEItems;
 import moze_intel.projecte.gameObjs.registries.PESoundEvents;
 import moze_intel.projecte.integration.jade.PEJadeConstants;
 import moze_intel.projecte.integration.recipe_viewer.alias.ProjectEAliases;
+import moze_intel.projecte.utils.EmcUnits;
 import moze_intel.projecte.utils.PEKeybind;
 import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.Util;
@@ -192,6 +193,10 @@ public class PELangProvider extends BaseLanguageProvider {
 		add("gui.projecte.emc_manager.log_exploits_on", "EMC Exploit Warnings: ON");
 		add("gui.projecte.emc_manager.log_exploits_off", "EMC Exploit Warnings: OFF");
 		add("gui.projecte.emc_manager.log_exploits_help", "Write the EMC exploit warnings found while mapping to the server log. Turn them off to keep the log clean, turn them back on when hunting for exploits; the change applies from the next mapping on, so click Apply or restart the server afterwards. Requires set, remove and reset permissions.");
+		add("gui.projecte.emc_manager.unit.auto", "Units: Auto");
+		add("gui.projecte.emc_manager.unit.chinese", "Units: Chinese");
+		add("gui.projecte.emc_manager.unit.english", "Units: English");
+		add("gui.projecte.emc_manager.unit_help", "Which names large EMC values use. Auto follows the game language, Chinese always uses the magnitude names, English always uses the short scale names. This is a client setting and needs no permission.");
 		add("gui.projecte.emc_manager.confirm_remove", "Set the base EMC of %s to zero? Applying disables its EMC and may affect related recipes and learned knowledge.");
 		add("gui.projecte.emc_manager.confirm_reset", "Remove the base item override for %s? Applying will recalculate it from the remaining configuration and recipes.");
 		add("gui.projecte.emc_manager.confirm_reset_mod", "Remove all custom EMC values for mod %s? Applying will recalculate them from recipes and configuration.");
@@ -297,6 +302,9 @@ public class PELangProvider extends BaseLanguageProvider {
 
 	private void addPostfix(int index, String postfix) {
 		add(Util.makeDescriptionId("emc", PECore.rl("postfix." + index)), "%1$s " + postfix);
+		//Explicit unit sets: the player can pin Chinese or English names regardless of the language
+		add(Util.makeDescriptionId("emc", PECore.rl("unit.cn." + index)), "%1$s " + EmcUnits.CHINESE[index]);
+		add(Util.makeDescriptionId("emc", PECore.rl("unit.en." + index)), "%1$s " + EmcUnits.ENGLISH[index]);
 	}
 
 	private void addEntityTypes() {

@@ -7,11 +7,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import moze_intel.projecte.client.EMCManagerClient;
+import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.network.PENetwork;
 import moze_intel.projecte.network.packets.to_client.EMCManagerResponsePKT;
 import moze_intel.projecte.network.packets.to_client.EMCManagerResponsePKT.Status;
 import moze_intel.projecte.network.packets.to_server.EMCManagerRequestPKT;
 import moze_intel.projecte.network.packets.to_server.EMCManagerRequestPKT.Action;
+import moze_intel.projecte.utils.EmcUnitStyle;
+import moze_intel.projecte.utils.TransmutationEMCFormatter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -45,7 +48,7 @@ public class EMCManagerScreen extends Screen {
 	private List<ItemEntry> filtered = List.of();
 	private ItemStack selected = new ItemStack(Items.DIAMOND);
 	private EditBox searchBox, valueBox;
-	private Button save, remove, reset, apply, previous, next, held, resetMod, logToggle;
+	private Button save, remove, reset, apply, previous, next, held, resetMod, logToggle, unitToggle;
 	private String searchText = "", valueText = "", serverValueText = "";
 	private Component status = text("waiting");
 	private boolean error, busy, loaded, pending, tooSmall, logExploits = true;
@@ -152,6 +155,12 @@ public class EMCManagerScreen extends Screen {
 		resetMod = addRenderableWidget(Button.builder(text("reset_mod"), button -> resetHeldMod())
 				.bounds(left + panelWidth - 170, top + 5, 78, 20)
 				.tooltip(Tooltip.create(text("reset_mod_help"))).build());
+		//Cycles AUTO -> CHINESE -> ENGLISH. It is a client setting, so it needs no server request.
+		unitToggle = addRenderableWidget(Button.builder(unitLabel(), button -> cycleUnit())
+				.bounds(left + panelWidth - 258, top + 5, 80, 20)
+				.tooltip(Tooltip.create(text("unit_help"))).build());
+		//Three buttons at the top need room; on a narrow window hide this one rather than let it overlap the title
+		unitToggle.visible = panelWidth >= 400;
 		searchBox = addRenderableWidget(new EditBox(font, left + 10, top + 37, listWidth, 18, text("search")));
 		searchBox.setMaxLength(128);
 		searchBox.setHint(text("search"));
@@ -352,6 +361,38 @@ public class EMCManagerScreen extends Screen {
 		logToggle.active = loaded && !busy && permissions == EMCManagerResponsePKT.ALL_PERMISSIONS;
 	}
 
+	private Component unitLabel() {
+		//Spelled out instead of built from the enum name so the translation keys stay greppable
+		return switch (EmcUnitStyle.current()) {
+			case AUTO -> text("unit.auto");
+			case CHINESE -> text("unit.chinese");
+			case ENGLISH -> text("unit.english");
+		};
+	}
+
+	private void cycleUnit() {
+		//Purely client side: nothing to ask the server, so it works even without any permission.
+		EmcUnitStyle next = EmcUnitStyle.current().next();
+		ProjectEConfig.client.setEmcUnitStyle(next);
+		unitToggle.setMessage(unitLabel());
+	}
+
+	/**
+	 * Formats an EMC value for display inside the manager.
+	 *
+	 * <p>This screen is an editor, so the exact number always stays visible; values large enough to be
+	 * abbreviated get the short form with its unit in brackets after it. That way the unit switch is
+	 * visible here while an administrator can still read and type the precise value.
+	 */
+	private static Component emcText(long value) {
+		Component exact = Component.literal(Long.toString(value));
+		//Below a trillion the formatter returns the plain grouped number, so the bracket would just repeat it
+		if (value < 1_000_000_000_000L) {
+			return exact;
+		}
+		return exact.copy().append(" (").append(TransmutationEMCFormatter.formatEMC(value)).append(")");
+	}
+
 	private void confirm(Action action) {
 		minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
 			minecraft.gui.setScreen(this);
@@ -416,8 +457,8 @@ public class EMCManagerScreen extends Screen {
 		String selectedId = BuiltInRegistries.ITEM.getKey(selected.getItem()).toString();
 		drawClipped(graphics, displayName(selected, selectedId), editorX + 22, top + 42, editorWidth - 22, 0xFFFFFFFF, mouseX, mouseY);
 		drawClipped(graphics, Component.literal(selectedId), editorX, top + 61, editorWidth, 0xFFACB6C8, mouseX, mouseY);
-		drawClipped(graphics, text("current", loaded ? Long.toString(currentValue) : "—"), editorX, top + 75, editorWidth, 0xFFF4DB98, mouseX, mouseY);
-		drawClipped(graphics, text("override", !loaded ? Component.literal("—") : customValue < 0 ? text("default") : Component.literal(Long.toString(customValue))),
+		drawClipped(graphics, text("current", loaded ? emcText(currentValue) : Component.literal("—")), editorX, top + 75, editorWidth, 0xFFF4DB98, mouseX, mouseY);
+		drawClipped(graphics, text("override", !loaded ? Component.literal("—") : customValue < 0 ? text("default") : emcText(customValue)),
 				editorX, top + 89, editorWidth, 0xFFACB6C8, mouseX, mouseY);
 		drawClipped(graphics, text("value"), editorX, top + 101, editorWidth, 0xFFFFFFFF, mouseX, mouseY);
 		boolean invalidValue = !busy && loaded && !valueText.isEmpty() && parsedValue() <= 0;

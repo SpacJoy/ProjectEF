@@ -9,6 +9,10 @@ import org.jetbrains.annotations.Nullable;
 public enum PEConfigTranslations implements IConfigTranslation {
 	//Client Config
 	CLIENT_PHILO_OVERLAY("client.philo_overlay", "Pulsating Overlay", "The Philosopher's Stone overlay softly pulsates."),
+	CLIENT_EMC_UNIT("client.emc_unit", "EMC Unit Names",
+			"Which names large EMC values are abbreviated with. AUTO follows the loaded language (Chinese shows the magnitude names such as "
+			+ "zhao / jing / gai, English shows Trillion / Quadrillion), CHINESE always uses the Chinese magnitude names and ENGLISH always uses "
+			+ "the English short scale names. Client side only."),
 
 	CLIENT_TOOLTIPS("client.tooltips", "Tooltip Settings", "Settings for configuring Tooltips provided by ProjectEF.", true),
 
