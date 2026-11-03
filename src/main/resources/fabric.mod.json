@@ -18,7 +18,7 @@
     "homepage": "https://github.com/wchiway/ProjectEF",
     "issues": "https://github.com/wchiway/ProjectEF/issues",
     "sources": "https://github.com/wchiway/ProjectEF",
-    "updateJsonURL": "https://raw.githubusercontent.com/wchiway/ProjectEF/26.3/update.json"
+    "updateJsonURL": "https://raw.githubusercontent.com/SpacJoy/ProjectEF/26.3/update.json"
   },
   "license": "MIT",
   "icon": "assets/projecte/icon.png",

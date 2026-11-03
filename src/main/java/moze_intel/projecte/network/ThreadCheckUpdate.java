@@ -23,8 +23,9 @@ import net.minecraft.util.TimeUtil;
 public class ThreadCheckUpdate extends Thread {
 
 	// Fallback update JSON URL; mirrors the updateJsonURL declared in fabric.mod.json.
-	private static final String DEFAULT_UPDATE_URL = "https://raw.githubusercontent.com/wchiway/ProjectEF/mc1.21.1/update.json";
-	private static final String curseURL = "https://www.curseforge.com/minecraft/mc-mods/projecte/files";
+	private static final String DEFAULT_UPDATE_URL = "https://raw.githubusercontent.com/SpacJoy/ProjectEF/26.3/update.json";
+	//This fork publishes its builds on GitHub rather than CurseForge, so the "get it here" link has to point there.
+	private static final String DOWNLOAD_URL = "https://github.com/SpacJoy/ProjectEF/releases";
 	private static volatile String targetVersion = null;
 	private static volatile boolean hasSentMessage = false;
 
@@ -110,7 +111,7 @@ public class ThreadCheckUpdate extends Thread {
 				hasSentMessage = true;
 				player.sendSystemMessage(PELang.UPDATE_AVAILABLE.translate(targetVersion));
 				player.sendSystemMessage(PELang.UPDATE_GET_IT.translate());
-				player.sendSystemMessage(TextComponentUtil.build(new net.minecraft.network.chat.ClickEvent.OpenUrl(java.net.URI.create(curseURL)), curseURL));
+				player.sendSystemMessage(TextComponentUtil.build(new net.minecraft.network.chat.ClickEvent.OpenUrl(java.net.URI.create(DOWNLOAD_URL)), DOWNLOAD_URL));
 			}
 		});
 	}
