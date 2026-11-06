@@ -2,6 +2,12 @@
 
 All notable changes to ProjectEF Neo are documented here.
 
+## [1.4.0] - 2026-11-07
+
+### Added
+
+- The unsellable enchantment now has a crafting recipe: a book and a philosopher's stone combine into an enchanted book carrying `projecte:unsellable`. The book is consumed, the philosopher's stone is not. That does not need any recipe code: `PhilosophersStone.initCraftingRemainder()` already gives the stone a self-referencing `craftingRemainingItem`, and 26.3's `CraftingRecipe.getRemainingItems` is a default method that walks `Item.getCraftingRemainder()` for every ingredient, so the stone survives any vanilla-shaped recipe it appears in. The result carries its enchantment through the recipe's `components` block; since 26.3 `ItemEnchantments.CODEC` is a plain `unboundedMap`, the JSON spells the map out directly instead of the `levels` wrapper the 1.21.1 data used. A recipe-book advancement unlocks it once the player holds a philosopher's stone.
+
 ## [1.3.5] - 2026-11-03
 
 ### Fixed
