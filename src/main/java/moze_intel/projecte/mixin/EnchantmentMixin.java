@@ -1,5 +1,6 @@
 package moze_intel.projecte.mixin;
 
+import moze_intel.projecte.gameObjs.PETags;
 import moze_intel.projecte.gameObjs.items.IEnchantableEquipment;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
@@ -20,6 +21,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <p>
  * The check lives on the enchantment rather than on our items, so it also covers the anvil and the {@code /enchant} command, which both go through
  * {@link Enchantment#canEnchant(ItemStack)}. It only ever applies to items that opted into {@link IEnchantableEquipment}, so gear from other mods is untouched.
+ * <p>
+ * The second injection works the other way around: it opens {@code canEnchant} up for the unsellable enchantment, whose whole purpose is being applied to items
+ * the enchanting table would never offer it for. See {@link #projecte$allowUnsellableOnAnyItem(ItemStack, CallbackInfoReturnable)}.
  */
 @Mixin(Enchantment.class)
 public abstract class EnchantmentMixin {
@@ -41,6 +45,29 @@ public abstract class EnchantmentMixin {
 			&& stack.getItem() instanceof IEnchantableEquipment) {
 			//Also keep the anvil and /enchant from applying it, as they bypass isSupportedItem
 			cir.setReturnValue(false);
+		}
+	}
+
+	/**
+	 * Lets the unsellable enchantment be applied to any item through its enchanted book.
+	 * <p>
+	 * The enchantment is deliberately not obtainable from the enchanting table: its {@code supported_items} only lists equipment, and that list is what the table
+	 * picks candidates from. But vanilla reuses the very same list for {@link Enchantment#canEnchant(ItemStack)}, which is the only check the anvil makes before it
+	 * copies an enchantment out of a book onto the target item. A book of it would therefore be rejected for everything outside that list, leaving the crafting
+	 * recipe with no use: marking an arbitrary stack as unsellable is the entire point of the enchantment, so the anvil and the {@code /enchant} command accept any
+	 * target here.
+	 * <p>
+	 * Only {@code canEnchant} is overridden, not {@code isSupportedItem}, because the enchanting table filters its candidates through
+	 * {@link Enchantment#isPrimaryItem(ItemStack)} instead, so the table keeps offering the enchantment for exactly the equipment it did before. Loot tables that
+	 * use an {@code enchant_randomly} function in its "compatible" mode are affected the same way the anvil is, but only if a pack lists this enchantment there
+	 * explicitly.
+	 */
+	@Inject(method = "canEnchant", at = @At("HEAD"), cancellable = true)
+	private void projecte$allowUnsellableOnAnyItem(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
+		Enchantment self = (Enchantment) (Object) this;
+		if (self.definition().supportedItems().unwrapKey().filter(PETags.Items.ENCHANTABLE_UNSELLABLE::equals).isPresent()) {
+			//The unsellable enchantment is meant to be applied through its enchanted book, so accept any target
+			cir.setReturnValue(true);
 		}
 	}
 }

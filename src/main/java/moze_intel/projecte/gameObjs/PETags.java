@@ -46,6 +46,13 @@ public class PETags {
 		 */
 		public static final TagKey<Item> IGNORE_MISSING_EMC = tag("ignore_missing_emc");
 		/**
+		 * The items the unsellable enchantment is offered for in the enchanting table, and the tag the enchantment itself points its {@code supported_items} at.
+		 * <p>
+		 * It doubles as the identity check for the enchantment in code: an enchantment cannot see its own registry key from inside a mixin, so the mixin that lets the
+		 * unsellable enchanted book apply to any item recognises it by this tag instead.
+		 */
+		public static final TagKey<Item> ENCHANTABLE_UNSELLABLE = tag("enchantable/unsellable");
+		/**
 		 * Items in this tag will be checked against being a BlockItem, and attempt to be placed by the harvest goddess band.
 		 */
 		public static final TagKey<Item> PLANTABLE_SEEDS = tag("plantable_seeds");
