@@ -22,8 +22,7 @@ jobs:
     name: Build and Release
     runs-on: ubuntu-latest
     env:
-      # gradlew 仅在 GRADLE_USER_HOME 未设置时才回退到 .gradle-home;
-      # 这里显式对齐,便于 actions/cache 精确缓存依赖 / wrapper / loom 缓存
+      # 固定到工作区内的 .gradle-home,便于 actions/cache 精确缓存依赖 / wrapper / loom 缓存
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-home
 
     steps:

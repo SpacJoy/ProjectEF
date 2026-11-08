@@ -26,7 +26,7 @@ A successful build or test task does not mean the retained tests ran. Restoring 
 
 ## Local Workspace
 
-The Gradle wrapper defaults `GRADLE_USER_HOME` to the repository's `.gradle-home/`. Keep it in place; deleting it is not necessary for directory cleanup. IDE Gradle integrations may need this path configured separately.
+The Gradle wrapper uses the default user-level `GRADLE_USER_HOME` (`~/.gradle`), so dependency, wrapper and Loom caches are shared with other projects on the machine. Set `GRADLE_USER_HOME` explicitly if you need an isolated cache.
 
 The `.gradle/`, `.gradle-home/`, `build/`, and `run/` directories are local build or runtime state, not source material. Exclude them from IDE indexing where appropriate. Back up test worlds before removing anything under `run/`.
 
