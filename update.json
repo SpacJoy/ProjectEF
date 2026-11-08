@@ -1,6 +1,6 @@
 {
     "homepage": "https://github.com/SpacJoy/ProjectEF",
-    "latest": "1.3.5",
+    "latest": "1.4.1",
     "1.21.1": {
         "1.1.0": "See https://www.curseforge.com/minecraft/mc-mods/projectef/files for detailed information.",
         "1.2.0": "See https://www.curseforge.com/minecraft/mc-mods/projectef/files for detailed information.",
@@ -12,12 +12,14 @@
     },
     "26.3": {
         "1.3.4": "First Minecraft 26.3 release: full port to the 26.3 item model, equipment asset, GuiGraphicsExtractor and recipe formats.",
-        "1.3.5": "Fixed invisible EMC Manager text (26.3 drops text with a zero alpha channel), fixed the EMC Manager losing item data components so component-based names and icons survive, fixed the highAlchemistUUIDs list being rewritten on every load, and fixed the ClientShutdownWatchdog crash report on quit by making the config save thread a daemon."
+        "1.3.5": "Fixed invisible EMC Manager text (26.3 drops text with a zero alpha channel), fixed the EMC Manager losing item data components so component-based names and icons survive, fixed the highAlchemistUUIDs list being rewritten on every load, and fixed the ClientShutdownWatchdog crash report on quit by making the config save thread a daemon.",
+        "1.4.0": "The unsellable enchantment now has a crafting recipe (a book and a philosopher's stone make an enchanted book carrying it, and the stone is kept), and the unsellable enchanted book can be applied to any item in an anvil rather than only the gear the enchantment lists.",
+        "1.4.1": "Fixed the philosopher's stone transmutation preview rendering as a black/magenta checkerboard: the overlay relied on textures/misc/white.png, which vanilla removed in 1.21.10, so it now uses the untextured vanilla debug filled box render type."
     },
     "promos": {
         "1.21.1-latest": "1.3.3",
         "1.21.1-recommended": "1.3.3",
-        "26.3-latest": "1.3.5",
-        "26.3-recommended": "1.3.5"
+        "26.3-latest": "1.4.1",
+        "26.3-recommended": "1.4.1"
     }
 }

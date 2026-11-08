@@ -11,11 +11,11 @@ import moze_intel.projecte.utils.Constants;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.block.FluidModel;
 import net.minecraft.client.renderer.state.level.BlockOutlineRenderState;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -53,8 +53,13 @@ public class TransmutationRenderingOverlay {
 				// FluidModel reached through the vanilla model manager, carrying the sprite and the tint source.
 				FluidModel fluidModel = mc.getModelManager().getFluidStateModelSet().get(fluidState);
 				TextureAtlasSprite sprite = fluidModel.stillMaterial().sprite();
-				int color = fluidModel.tintSource().color(transmutationResult.defaultBlockState()) | 0xFF000000;
-				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, 1, 1, 16, 16, color);
+				//26.3 only bakes a tint source for fluids that actually have one: the vanilla lava model is built with a
+				// null tint source, so calling through it unconditionally crashed the frame as soon as the preview
+				// targeted something that transmutes into lava (the obsidian of a nether portal frame, for example).
+				// Vanilla's FluidRenderer does the same null check and falls back to -1, so lava previews untinted.
+				BlockTintSource tintSource = fluidModel.tintSource();
+				int rgb = tintSource == null ? 0xFFFFFF : tintSource.color(transmutationResult.defaultBlockState()) & 0xFFFFFF;
+				graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, 1, 1, 16, 16, rgb | 0xFF000000);
 			} else {
 				//Just render it normally instead of with the given model as some block's don't render properly then as an item
 				// for example glass panes
@@ -139,8 +144,10 @@ public class TransmutationRenderingOverlay {
 	/**
 	 * Emits every face of the given shape as two triangles worth of quads.
 	 * <p>
-	 * 26.3 dropped {@code LevelRenderer#renderFace}, so the face winding and the full-bright lighting that helper used to
-	 * apply are reproduced here. Colour is white with the pulsating alpha; the render type is a translucent, unlit quad.
+	 * 26.3 dropped {@code LevelRenderer#renderFace}, so the face winding is reproduced here. The overlay render type is
+	 * POSITION_COLOR only, so unlike the old 1.21.1 code there is no full-bright lightmap or normal to supply: {@code
+	 * BufferBuilder} silently skips vertex elements the pipeline format does not declare. Colour is white with the
+	 * pulsating alpha and the pipeline blends it over the world.
 	 */
 	private static void emitShape(PoseStack.Pose pose, VertexConsumer consumer, VoxelShape shape, float alpha) {
 		int color = ((int) (alpha * 255) << 24) | 0xFFFFFF;
@@ -159,52 +166,46 @@ public class TransmutationRenderingOverlay {
 		float x0 = minX, y0 = minY, z0 = minZ, x1 = maxX, y1 = maxY, z1 = maxZ;
 		switch (direction) {
 			case DOWN -> {
-				vertex(pose, consumer, color, x0, y0, z0, 0, 0, 0, -1, 0);
-				vertex(pose, consumer, color, x0, y0, z1, 0, 1, 0, -1, 0);
-				vertex(pose, consumer, color, x1, y0, z1, 1, 1, 0, -1, 0);
-				vertex(pose, consumer, color, x1, y0, z0, 1, 0, 0, -1, 0);
+				vertex(pose, consumer, color, x0, y0, z0);
+				vertex(pose, consumer, color, x0, y0, z1);
+				vertex(pose, consumer, color, x1, y0, z1);
+				vertex(pose, consumer, color, x1, y0, z0);
 			}
 			case UP -> {
-				vertex(pose, consumer, color, x0, y1, z0, 0, 0, 0, 1, 0);
-				vertex(pose, consumer, color, x1, y1, z0, 1, 0, 0, 1, 0);
-				vertex(pose, consumer, color, x1, y1, z1, 1, 1, 0, 1, 0);
-				vertex(pose, consumer, color, x0, y1, z1, 0, 1, 0, 1, 0);
+				vertex(pose, consumer, color, x0, y1, z0);
+				vertex(pose, consumer, color, x1, y1, z0);
+				vertex(pose, consumer, color, x1, y1, z1);
+				vertex(pose, consumer, color, x0, y1, z1);
 			}
 			case NORTH -> {
-				vertex(pose, consumer, color, x0, y0, z0, 0, 1, 0, 0, -1);
-				vertex(pose, consumer, color, x1, y0, z0, 1, 1, 0, 0, -1);
-				vertex(pose, consumer, color, x1, y1, z0, 1, 0, 0, 0, -1);
-				vertex(pose, consumer, color, x0, y1, z0, 0, 0, 0, 0, -1);
+				vertex(pose, consumer, color, x0, y0, z0);
+				vertex(pose, consumer, color, x1, y0, z0);
+				vertex(pose, consumer, color, x1, y1, z0);
+				vertex(pose, consumer, color, x0, y1, z0);
 			}
 			case SOUTH -> {
-				vertex(pose, consumer, color, x0, y0, z1, 1, 1, 0, 0, 1);
-				vertex(pose, consumer, color, x0, y1, z1, 1, 0, 0, 0, 1);
-				vertex(pose, consumer, color, x1, y1, z1, 0, 0, 0, 0, 1);
-				vertex(pose, consumer, color, x1, y0, z1, 0, 1, 0, 0, 1);
+				vertex(pose, consumer, color, x0, y0, z1);
+				vertex(pose, consumer, color, x0, y1, z1);
+				vertex(pose, consumer, color, x1, y1, z1);
+				vertex(pose, consumer, color, x1, y0, z1);
 			}
 			case WEST -> {
-				vertex(pose, consumer, color, x0, y0, z0, 1, 1, -1, 0, 0);
-				vertex(pose, consumer, color, x0, y1, z0, 1, 0, -1, 0, 0);
-				vertex(pose, consumer, color, x0, y1, z1, 0, 0, -1, 0, 0);
-				vertex(pose, consumer, color, x0, y0, z1, 0, 1, -1, 0, 0);
+				vertex(pose, consumer, color, x0, y0, z0);
+				vertex(pose, consumer, color, x0, y1, z0);
+				vertex(pose, consumer, color, x0, y1, z1);
+				vertex(pose, consumer, color, x0, y0, z1);
 			}
 			case EAST -> {
-				vertex(pose, consumer, color, x1, y0, z0, 0, 1, 1, 0, 0);
-				vertex(pose, consumer, color, x1, y0, z1, 1, 1, 1, 0, 0);
-				vertex(pose, consumer, color, x1, y1, z1, 1, 0, 1, 0, 0);
-				vertex(pose, consumer, color, x1, y1, z0, 0, 0, 1, 0, 0);
+				vertex(pose, consumer, color, x1, y0, z0);
+				vertex(pose, consumer, color, x1, y0, z1);
+				vertex(pose, consumer, color, x1, y1, z1);
+				vertex(pose, consumer, color, x1, y1, z0);
 			}
 		}
 	}
 
-	private static void vertex(PoseStack.Pose pose, VertexConsumer consumer, int color, float x, float y, float z,
-			float u, float v, float normalX, float normalY, float normalZ) {
-		consumer.addVertex(pose, x, y, z)
-				.setColor(color)
-				.setUv(u, v)
-				.setOverlay(OverlayTexture.NO_OVERLAY)
-				.setLight(0xF000F0)
-				.setNormal(pose, normalX, normalY, normalZ);
+	private static void vertex(PoseStack.Pose pose, VertexConsumer consumer, int color, float x, float y, float z) {
+		consumer.addVertex(pose, x, y, z).setColor(color);
 	}
 
 	private float getPulseProportion() {

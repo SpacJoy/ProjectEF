@@ -42,7 +42,12 @@ public class PERenderType {
 	 * Translucent no-cull overlay used to highlight the blocks the philosopher's stone would transmute.
 	 * <p>
 	 * 26.3 lost {@code LevelRenderer#renderFace}, so the geometry is now emitted by hand from {@link
-	 * TransmutationRenderingOverlay}; the render type only has to be a translucent, unlit, non-culled quad type.
+	 * TransmutationRenderingOverlay}. The overlay is also untextured now: 26.3 (like 1.21.10 before it) removed
+	 * {@code textures/misc/white.png} from the vanilla assets, so the old "translucent entity quad over a white texture"
+	 * trick left the overlay binding a missing texture, which is why it rendered as the black/magenta checkerboard.
+	 * Vanilla's debug filled box is exactly the shape needed: a POSITION_COLOR quad pipeline that is unlit, blended, not
+	 * culled, does not write depth and carries a view offset so the overlay does not z-fight with the block it sits on.
+	 * This mirrors the hand-built POSITION_COLOR render type the 1.21.1 branch had.
 	 */
-	public static final RenderType TRANSMUTATION_OVERLAY = RenderTypes.entityTranslucent(Identifier.withDefaultNamespace("textures/misc/white.png"));
+	public static final RenderType TRANSMUTATION_OVERLAY = RenderTypes.debugFilledBox();
 }
