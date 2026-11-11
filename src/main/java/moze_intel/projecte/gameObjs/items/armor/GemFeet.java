@@ -37,7 +37,8 @@ public class GemFeet extends GemArmorBase {
 		//26.3 removed Item#getDefaultAttributeModifiers; the base modifiers now live on the item default component map
 		this.defaultModifiers = Suppliers.memoize(() -> components().getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY).withModifierAdded(
 				Attributes.MOVEMENT_SPEED,
-				new AttributeModifier(PECore.rl("armor"), 1.0, Operation.ADD_MULTIPLIED_TOTAL),
+				//+50% movement speed
+				new AttributeModifier(PECore.rl("armor"), 0.5, Operation.ADD_MULTIPLIED_TOTAL),
 				EquipmentSlotGroup.FEET
 		));
 		this.defaultWithStepAssistModifiers = Suppliers.memoize(() -> getDefaultAttributeModifiers().withModifierAdded(

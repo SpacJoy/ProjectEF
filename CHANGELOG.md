@@ -2,6 +2,13 @@
 
 ProjectEF Neo 的所有重要变更都记录在此。
 
+## [1.4.2] - 2026-11-12
+
+### 修改
+
+- 飓风长靴的移动速度加成从 +100% 下调到 +50%。原实现是 `ADD_MULTIPLIED_TOTAL` 1.0，把基础移速 0.1 直接翻倍成 0.2，跑起来快到手感失控；现在系数是 0.5，等效 `0.1 → 0.15`。旧的 `ItemStack` 会在穿戴时由 `GemFeet#inventoryTick` 的 `syncStepAssistModifiers` 重刷成新值，不需要重新拿一件。
+- 客户端对视野拉伸的补偿跟着改动：`AbstractClientPlayerMixin` 里减 0.5 的常量换成 0.25。原版 `getFieldOfViewModifier` 按 `(speed / walkingSpeed + 1) / 2` 算，+100% 落在 1.5、减 0.5 刚好抵消，+50% 落在 1.25、只有减 0.25 才对得上。这两处数值必须同步，否则穿靴子跑动时视野会被拉宽或压窄。
+
 ## [1.4.1] - 2026-11-07
 
 ### 修复
