@@ -95,9 +95,22 @@ public class PEMorningStar extends PETool implements IItemMode<PickaxeMode>, IHa
 		return InteractionResult.PASS;
 	}
 
+	/**
+	 * Extra mining speed the morning star gets over the other matter tools once it is fully charged. The bonus used to
+	 * be a flat +48.0F that ignored charge, which made an uncharged morning star break ordinary blocks in a fraction of
+	 * a tick and mine several blocks per click, so it is scaled by the charge instead: nothing at zero charge, the full
+	 * 48 at max charge.
+	 */
+	private static final float MAX_SPEED_BONUS = 48.0F;
+
 	@Override
 	public float getDestroySpeed(@NotNull ItemStack stack, @NotNull BlockState state) {
-		return ToolHelper.canMatterMine(matterType, state.getBlock()) ? 1_200_000 : super.getDestroySpeed(stack, state) + 48.0F;
+		if (ToolHelper.canMatterMine(matterType, state.getBlock())) {
+			return 1_200_000;
+		}
+		float destroySpeed = super.getDestroySpeed(stack, state);
+		int charge = getCharge(stack);
+		return charge == 0 ? destroySpeed : destroySpeed + MAX_SPEED_BONUS * charge / getNumCharges(stack);
 	}
 
 	@Override
