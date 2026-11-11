@@ -371,10 +371,14 @@ public class ToolHelper {
 		//cannot be required to hit pos. It will normally hit the block behind it; fall back to the
 		//opposite of the player's look direction when there is no block behind the original target.
 		Direction sideHit = result.getType() == Type.MISS ? Direction.getApproximateNearest(player.getLookAngle()).getOpposite() : result.getDirection();
+		//The block that actually broke is already gone by now, so the category reference has to come from what the
+		//player is still aiming at; a miss means there is nothing sensible to compare against and the AOE is skipped.
+		BlockState originState = level.getBlockState(pos);
 		List<ItemStack> drops = new ArrayList<>();
 		for (BlockPos digPos : getTargets(pos, player, sideHit, mode)) {
 			BlockState state = level.getBlockState(digPos);
-			if (!state.isAir() && state.getDestroySpeed(level, digPos) != Block.INDESTRUCTIBLE && stack.isCorrectToolForDrops(state)) {
+			if (!state.isAir() && state.getDestroySpeed(level, digPos) != Block.INDESTRUCTIBLE && stack.isCorrectToolForDrops(state)
+					&& isSameDigCategory(originState, state)) {
 				//Ensure we are immutable so that changing blocks doesn't act weird
 				digPos = digPos.immutable();
 				if (PlayerHelper.hasBreakPermission((ServerPlayer) player, level, digPos)) {
@@ -401,6 +405,44 @@ public class ToolHelper {
 	}
 
 	/**
+	 * Whether a candidate AOE block belongs to the same digging category as the block the player actually clicked.
+	 *
+	 * <p>This is what stops the depth-expanding AOE from reaching through the targeted block into unrelated material:
+	 * clicking grass must not mine the stone beneath it, and clicking dirt must not strip a cobblestone floor.
+	 *
+	 * <p>The category is decided by the target's own vanilla tool tag. A candidate matches when it carries the same
+	 * tag: grass and dirt are both shovel-mined so they match, while stone is pickaxe-mined and therefore does not.
+	 * When the target carries none of these tags (plants, crops, modded blocks), any candidate that is also untagged
+	 * as far as these five go is accepted -- the tool's own {@code isCorrectToolForDrops} check already gated it.
+	 */
+	private static boolean isSameDigCategory(BlockState origin, BlockState candidate) {
+		for (TagKey<Block> tag : DIG_CATEGORY_TAGS) {
+			if (origin.is(tag)) {
+				//Target is mined with this tool class, so only blocks of the same class may join the AOE.
+				return candidate.is(tag);
+			}
+		}
+		//Target is not covered by any vanilla tool tag: require the candidate to be untagged as well.
+		for (TagKey<Block> tag : DIG_CATEGORY_TAGS) {
+			if (candidate.is(tag)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Vanilla's "this is mined with a pickaxe"-style tags. These are mutually exclusive enough to separate stone from
+	 * dirt, wood, plants and everything else, which is all the AOE filter needs to stay predictable.
+	 */
+	private static final List<TagKey<Block>> DIG_CATEGORY_TAGS = List.of(
+			BlockTags.MINEABLE_WITH_PICKAXE,
+			BlockTags.MINEABLE_WITH_SHOVEL,
+			BlockTags.MINEABLE_WITH_AXE,
+			BlockTags.MINEABLE_WITH_HOE
+	);
+
+	/**
 	 * Carves in an AOE. Charge affects the breadth and/or depth of the AOE. Optional per-block EMC cost.
 	 */
 	public static InteractionResult digAOE(Level level, Player player, InteractionHand hand, ItemStack stack, BlockPos pos, Direction sideHit, boolean affectDepth, long emcCost) {
@@ -411,12 +453,18 @@ public class ToolHelper {
 		if (charge == 0) {
 			return InteractionResult.PASS;
 		}
+		//Only carve blocks the tool is actually meant to mine. Without this check the AOE box (which grows in depth
+		// when affectDepth is set) swallows whatever happens to be behind the target: right clicking grass would dig
+		// out the stone underneath it, because isCorrectToolForDrops only asks "can this tool harvest that block",
+		// not "is that block part of this tool's job".
+		BlockState originState = level.getBlockState(pos);
 		AABB box = affectDepth ? WorldHelper.getBroadDeepBox(pos, sideHit, charge) : WorldHelper.getFlatYBox(pos, charge);
 		boolean hasAction = false;
 		List<ItemStack> drops = new ArrayList<>();
 		for (BlockPos newPos : WorldHelper.getPositionsInBox(box)) {
 			BlockState state = level.getBlockState(newPos);
-			if (!state.isAir() && state.getDestroySpeed(level, newPos) != Block.INDESTRUCTIBLE && stack.isCorrectToolForDrops(state)) {
+			if (!state.isAir() && state.getDestroySpeed(level, newPos) != Block.INDESTRUCTIBLE && stack.isCorrectToolForDrops(state)
+					&& isSameDigCategory(originState, state)) {
 				if (level.isClientSide()) {
 					return InteractionResult.SUCCESS;
 				}
