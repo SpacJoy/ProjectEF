@@ -1,0 +1,13 @@
+{
+  "name": "avaritia:dark_matter",
+  "displayName": "singularity.projecte.dark_matter",
+  "ingredient": {
+    "item": "projecte:dark_matter_block"
+  },
+  "count": 200,
+  "timeCost": 240,
+  "overlayColor": "7c70b5",
+  "underlayColor": "1b1531",
+  "enabled": true,
+  "recipeEnabled": true
+}

@@ -1,4 +1,6 @@
 {
+  "singularity.projecte.dark_matter": "暗物质",
+  "singularity.projecte.red_matter": "红物质",
   "key.projecte.emc_manager": "打开 EMC 管理器",
   "gui.projecte.emc_manager.title": "EMC 管理器",
   "gui.projecte.emc_manager.held": "选择手持物品",

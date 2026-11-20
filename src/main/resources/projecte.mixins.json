@@ -8,7 +8,6 @@
   ],
   "mixins": [
     "BlockBehaviourMixin",
-    "compat.AvaritiaCompatsMixin",
     "EnchantmentMixin",
     "EntityMixin",
     "FireBlockMixin",

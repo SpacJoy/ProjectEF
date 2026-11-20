@@ -43,6 +43,9 @@ public class PELangProvider extends BaseLanguageProvider {
 		//Misc stuff
 		add(PELang.PROJECTE, PECore.MODNAME);
 		add(PELang.PACK_DESCRIPTION, "Resources used for " + PECore.MODNAME);
+		// Re:Avaritia renders singularity names as translatable components.
+		add("singularity.projecte.dark_matter", "Dark Matter");
+		add("singularity.projecte.red_matter", "Red Matter");
 		addModInfo(PECore.MODNAME, "A complete rewrite of EE2 for modern Minecraft versions.");
 		add(PELang.SECONDS, "%1$s seconds");
 		add(PELang.EVERY_TICK, "%1$s seconds (every tick)");

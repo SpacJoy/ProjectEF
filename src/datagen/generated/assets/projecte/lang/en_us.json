@@ -1,4 +1,6 @@
 {
+  "singularity.projecte.dark_matter": "Dark Matter",
+  "singularity.projecte.red_matter": "Red Matter",
   "key.projecte.emc_manager": "Open EMC Manager",
   "gui.projecte.emc_manager.title": "EMC Manager",
   "gui.projecte.emc_manager.held": "Held item",

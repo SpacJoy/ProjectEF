@@ -2,6 +2,14 @@
 
 ProjectEF Neo 的所有重要变更都记录在此。
 
+## [1.4.3] - 2026-11-20
+
+### 修复
+
+- 与 Re:Avaritia 26.3 一起加载时，创建世界会因配方注册表解析失败而中止。ProjectEF 仍附带 1.21.1 的压缩机配方，但新版 Re:Avaritia 已改为数据驱动奇点，并移除了 `avaritia:dark_matter_singularity` 与 `avaritia:red_matter_singularity` 物品。现在改为声明 `avaritia:dark_matter` 和 `avaritia:red_matter` 两个奇点，由 Re:Avaritia 自动生成压缩机配方；产物使用新版统一的奇点物品及对应的数据组件。
+- 删除目标类已不存在的 Avaritia 兼容 Mixin 和反射注册逻辑，同时移除指向旧版独立奇点物品的内置 EMC 条目。新版奇点的 EMC 由配方映射推导，不再把这些无效条目静默跳过。
+- 为奇点补充中英文名称。Re:Avaritia 默认启用 ProjectE 奇点原料数量提升，因此虽然定义保留每个奇点 200 个物质方块，实际配方按该模组规则使用 10,000 个。
+
 ## [1.4.2] - 2026-11-12
 
 ### 修改

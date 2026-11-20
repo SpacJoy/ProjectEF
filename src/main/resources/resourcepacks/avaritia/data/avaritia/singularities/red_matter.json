@@ -1,0 +1,13 @@
+{
+  "name": "avaritia:red_matter",
+  "displayName": "singularity.projecte.red_matter",
+  "ingredient": {
+    "item": "projecte:red_matter_block"
+  },
+  "count": 200,
+  "timeCost": 240,
+  "overlayColor": "d14943",
+  "underlayColor": "3f0508",
+  "enabled": true,
+  "recipeEnabled": true
+}
