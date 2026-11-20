@@ -84,7 +84,7 @@
 ### 三、暂未移植的部分
 
 - **EMI 集成**：EMI 没有 26.3 版本，源码保留在树里但排除在编译外。JEI 和 REI 正常。
-- **其他可选兼容**：Avaritia、AMEcs 等依赖没有 26.3 版本，运行时会静默跳过。
+- **其他可选兼容**：AMEcs 等依赖没有 26.3 版本，运行时会静默跳过。Re:Avaritia 26.3 的适配见[兼容与本地化](#兼容与本地化)。
 
 ## 概述
 
@@ -132,7 +132,8 @@
 ### 兼容与本地化
 
 * 经典 Avaritia 物品的内置 EMC 值**默认关闭**。要启用，在 `config/ProjectE/mapping.toml` 顶层设置 `enableAvaritiaEMC = true`，然后重启服务器或重新加载世界。如果开了 `usePregenerated`，先关掉它，EMC 值才会重新计算。这个开关不影响自定义 EMC 值和由配方推导出的值。
-* AvaritiaNeo Fabric：自动启用暗物质与红物质奇点，压缩配方消耗 200 个对应的 ProjectE 物质块。不需要物品炼金。
+* [Re:Avaritia](https://github.com/Nova-Committee/Re-Avaritia) 26.3 Fabric：适配无尽工作台、压缩机、无尽锻造等自定义配方，大多数物品都能通过配方自动推导 EMC。压缩机计入耗时成本，无尽锻造按实际消耗的三份添加材料计算；配料的数据组件会保留，因此不同奇点分别推导 EMC。
+* 自动添加暗物质与红物质奇点，并由 Re:Avaritia 生成对应的压缩配方。其默认 ProjectE 数量提升会把原料数量提高至 10,000 个对应物质块。
 * 完整的中文与英文本地化。
 * 兼容原版 ProjectE 的配置格式与模组 ID（`projecte`）。
 
@@ -165,6 +166,7 @@
 * JEI / EMI / REI —— 配方查看器
 * Jade / WTHIT —— 方块信息浮层。装了 Jade 时，ProjectEF Neo 会通过 Jade 的 Fabric 插件入口注册自己的 EMC 数据源，不需要给 Jade 打补丁。看向有 EMC 值的方块就会显示。请保持 ProjectE `server.toml` 里的 `misc.lookingAtDisplay` 开启，并在 Jade 的插件设置里启用 **EMC Provider**（`projecte:emc_provider`）。
 * Trinkets —— 饰品槽
+* Re:Avaritia 26.3 Fabric —— 自定义配方 EMC 自动推导，以及暗物质与红物质奇点
 
 ## 兼容性说明
 
