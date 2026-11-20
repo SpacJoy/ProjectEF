@@ -154,7 +154,7 @@ public abstract class BaseRecipeTypeMapper implements IRecipeTypeMapper {
 		return stack.getItem() == Items.BARRIER && stack.getHoverName() instanceof MutableComponent hoverName && hoverName.getString().startsWith("Empty Tag: ");
 	}
 
-	private ItemStack[] getMatchingStacks(Ingredient ingredient, Identifier recipeID) {
+	protected ItemStack[] getMatchingStacks(Ingredient ingredient, Identifier recipeID) {
 		try {
 			return ingredient.items().map(Holder::value).map(ItemStack::new).toArray(ItemStack[]::new);
 		} catch (Exception e) {

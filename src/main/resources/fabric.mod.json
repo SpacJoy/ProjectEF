@@ -64,6 +64,7 @@
       "moze_intel.projecte.emc.mappers.recipe.CraftingMapper"
     ],
     "projecte:recipe_type_mappers": [
+      "moze_intel.projecte.emc.mappers.recipe.AvaritiaRecipeMapper",
       "moze_intel.projecte.emc.mappers.recipe.FallbackRecipeTypeMapper",
       "moze_intel.projecte.emc.mappers.recipe.SmithingRecipeMapper",
       "moze_intel.projecte.emc.mappers.recipe.VanillaRecipeTypeMapper",
