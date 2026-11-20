@@ -25,7 +25,7 @@
 
 ## 快速链接
 
-[GitHub Releases](https://github.com/wchiway/ProjectEF/releases) · [安装说明](#安装) · [反馈问题](https://github.com/wchiway/ProjectEF/issues) · [开发指南](DEV.md)
+[最新版本 1.4.4](https://github.com/SpacJoy/ProjectEF/releases/tag/1.4.4) · [完整更新日志](CHANGELOG.md) · [安装说明](#安装) · [反馈问题](https://github.com/SpacJoy/ProjectEF/issues) · [开发指南](DEV.md)
 
 > **本分支说明（Minecraft 26.3）**
 >
@@ -105,6 +105,7 @@
 
 * 物品与 EMC 双向转换，物品价值永久记录。
 * 转换桌与便携式转换桌。
+* EMC 单位可跟随游戏语言，或固定使用中文数量级 / 英文短级差名称；可在 EMC 管理器顶栏切换，设置位于 `config/projecte/client.toml` 的 `emcUnit`。
 * 可自定义 EMC 值（`custom_emc.json`、游戏内 EMC 管理器，或命令）。
 * 按 **F8**（可在「控制」里改键）或使用暂停菜单里的 **EMC 管理器**。可按物品名称 / ID 搜索，或直接选中手持物品的基础类型，然后保存、移除或重置它的 EMC。点 **应用** 即可重新计算并同步所有已保存的改动，不需要 `/reload`。
 * 编辑需要对应的 ProjectE 命令权限（`set_emc`、`remove_emc`、`reset_emc`，默认 OP 等级 2）；应用需要这三项全部具备。移除会保存一个零值覆盖；重置会删掉基础物品的覆盖值。该界面不编辑标签和组件变体。
@@ -132,7 +133,7 @@
 ### 兼容与本地化
 
 * 经典 Avaritia 物品的内置 EMC 值**默认关闭**。要启用，在 `config/ProjectE/mapping.toml` 顶层设置 `enableAvaritiaEMC = true`，然后重启服务器或重新加载世界。如果开了 `usePregenerated`，先关掉它，EMC 值才会重新计算。这个开关不影响自定义 EMC 值和由配方推导出的值。
-* [Re:Avaritia](https://github.com/Nova-Committee/Re-Avaritia) 26.3 Fabric：适配无尽工作台、压缩机、无尽锻造等自定义配方，大多数物品都能通过配方自动推导 EMC。压缩机计入耗时成本，无尽锻造按实际消耗的三份添加材料计算；配料的数据组件会保留，因此不同奇点分别推导 EMC。
+* [Re:Avaritia](https://github.com/Nova-Committee/Re-Avaritia) 26.3 Fabric：适配无尽工作台、压缩机、无尽锻造等自定义配方，**大多数有合成链的物品都能通过配方自动推导 EMC**，不需要逐个手动设置。压缩机计入耗时成本，无尽锻造按实际消耗的三份添加材料计算；配料的数据组件会保留，因此不同奇点分别推导 EMC。没有配方、配方原料本身也没有 EMC 的物品，仍需要其他基础 EMC 来源。
 * 自动添加暗物质与红物质奇点，并由 Re:Avaritia 生成对应的压缩配方。其默认 ProjectE 数量提升会把原料数量提高至 10,000 个对应物质块。
 * 完整的中文与英文本地化。
 * 兼容原版 ProjectE 的配置格式与模组 ID（`projecte`）。
